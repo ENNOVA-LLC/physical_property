@@ -113,6 +113,7 @@ fig.show()
 
 ## Package Structure
 
+```bash
 physical_properties/
 ├── src/
 │   └── physical_properties/
@@ -127,6 +128,7 @@ physical_properties/
 ├── tests/                       # Unit tests
 ├── examples/                    # Usage examples
 └── pyproject.toml               # Package configuration
+```
 
 ## License
 
