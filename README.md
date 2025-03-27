@@ -1,9 +1,9 @@
-# Physical Properties
+# Physical Property
 
 ![PyPI version](https://badge.fury.io/py/physical-properties.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-`physical_properties` is a Python package for managing physical properties with unit conversions. It provides a flexible `PhysicalProperty` base class and a variety of subclasses (e.g., `Time`, `Temperature`, `Pressure`, `ReynoldsNumber`) to handle dimensional quantities, unit conversions, and engineering calculations. Built with scientific computing in mind, it integrates with NumPy, SciPy, and Plotly for robust functionality.
+`physical_property` is a Python package for managing physical properties with unit conversions. It provides a flexible `PhysicalProperty` base class and a variety of subclasses (e.g., `Time`, `Length`, `Temperature`, `Pressure`, `Density`, `Viscosity`, `ReynoldsNumber`) to handle dimensional quantities, unit conversions, and engineering calculations. Built with scientific computing in mind, it integrates with NumPy, SciPy, and Plotly for robust functionality.
 
 ## Features
 
