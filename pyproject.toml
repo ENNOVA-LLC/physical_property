@@ -25,7 +25,7 @@ package-dir = { "" = "src" }
 packages = { find = { where = ["src"] } }
 
 [tool.setuptools.package-data]
-"physical_properties" = ["*.logs"]  # Include log files if needed (e.g., from loguru)
+"physical_property" = ["*.logs"]  # Include log files if needed (e.g., from loguru)
 
 [project.optional-dependencies]
 test = [

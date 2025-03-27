@@ -1,8 +1,6 @@
 """ `base`
 
-Physical Property Classes
--------------------------
-This module contains classes for physical properties with unit information. The base class
+This module contains the base class `PhysicalProperty` for physical properties with unit information.
 `PhysicalProperty` is inherited by specific property classes (e.g., `Time`, `Temperature`, `Pressure`)
 that define the conversion logic for each property type.
 

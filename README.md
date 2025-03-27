@@ -14,6 +14,27 @@
 - **Plotting**: Visualize data with Plotly integration.
 - **Extensible**: Add custom properties or units with a modular design.
 
+## Environment Setup
+
+To create a Conda environment for this package:
+
+1. Ensure Conda is installed (e.g., via [Miniconda](https://docs.conda.io/en/latest/miniconda.html)).
+2. Create the environment from `env.yaml`:
+
+   ```bash
+   conda env create -f env.yaml
+   ```
+3. Activate the environment:
+
+   ```bash
+   conda activate physical_property_env
+   ```
+4. Install the package:
+
+   ```bash
+   pip install -e .
+   ```
+
 ## Installation
 
 ### Prerequisites
@@ -24,7 +45,7 @@
 ### Install from PyPI
 
 ```bash
-pip install physical_properties
+pip install physical_property
 ```
 
 ### Install from Source
@@ -32,8 +53,8 @@ pip install physical_properties
 Clone the repository and install locally:
 
 ```bash
-git clone https://github.com/ENNOVA-LLC/physical_properties.git
-cd physical_properties
+git clone https://github.com/ENNOVA-LLC/physical_property.git
+cd physical_property
 pip install -e .
 ```
 
@@ -42,8 +63,8 @@ pip install -e .
 For testing or development:
 
 ```bash
-pip install "physical_properties[test]"  # For pytest
-pip install "physical_properties[dev]"   # For linting/formatting tools
+pip install "physical_property[test]"  # For pytest
+pip install "physical_property[dev]"   # For linting/formatting tools
 ```
 
 ## Usage
@@ -53,7 +74,7 @@ pip install "physical_properties[dev]"   # For linting/formatting tools
 Create a `Time` object and convert units:
 
 ```python
-from physical_properties import Time
+from physical_property import Time
 
 # Create a time object in seconds
 t = Time(value=3600, unit="s")
@@ -69,7 +90,7 @@ print(t_hours)  # Time(name='time', unit='h', value=(1))
 Handle multiple values with bounds:
 
 ```python
-from physical_properties import Temperature
+from physical_property import Temperature
 
 # Temperature array with bounds
 temp = Temperature(value=[300, 350, 400], unit="K", bounds=(0, 500))
@@ -85,7 +106,7 @@ print(temp_c)  # Temperature(name='temperature', unit='C', value=(3,))
 Calculate a Reynolds number:
 
 ```python
-from physical_properties import Length, Velocity, Density, Viscosity, ReynoldsNumber
+from physical_property import Length, Velocity, Density, Viscosity, ReynoldsNumber
 
 length = Length(value=0.1, unit="m")
 velocity = Velocity(value=2.0, unit="m/s")
@@ -102,7 +123,7 @@ Visualize data:
 
 ```python
 import numpy as np
-from physical_properties import Time, Pressure
+from physical_property import Time, Pressure
 
 time = Time(value=np.linspace(0, 10, 100), unit="s")
 pressure = Pressure(value=np.sin(time.value), unit="bar")
@@ -114,9 +135,9 @@ fig.show()
 ## Package Structure
 
 ```bash
-physical_properties/
+physical_property/
 ├── src/
-│   └── physical_properties/
+│   └── physical_property/
 │       ├── base.py              # PhysicalProperty base class
 │       ├── properties/          # Property-specific modules
 │       │   ├── basic.py         # Time, Length, etc.
