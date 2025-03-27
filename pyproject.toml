@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "physical_property"
+version = "0.1.0"
+description = "A package for managing physical properties with unit conversions"
+readme = "README.md"
+authors = [
+    { name = "Caleb Sisco", email = "sisco@ennova.us" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "attrs",
+    "plotly",
+    "scipy",
+    "loguru",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = { find = { where = ["src"] } }
+
+[tool.setuptools.package-data]
+"physical_properties" = ["*.logs"]  # Include log files if needed (e.g., from loguru)
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ENNOVA-LLC/physical_property"
+"Repository" = "https://github.com/ENNOVA-LLC/physical_property"
