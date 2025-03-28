@@ -6,7 +6,8 @@ that define the conversion logic for each property type.
 
 The `UnitConverter` class is used to handle unit conversions between different unit sets.
 """
-from typing import Tuple, Union, Dict, Any, Optional, ClassVar
+import re
+from typing import List, Tuple, Union, Dict, Any, Optional
 import numpy as np
 import attr
 from plotly import graph_objects as go
@@ -16,11 +17,13 @@ from .units import UnitConverter  # Import the UnitConverter class
 
 logger.add("logs/property.log", rotation="10 MB")
 
-# Instantiate a UnitConverter object for use across all classes
-unit_converter = UnitConverter(unit_set='standard')
-UNITS_DICT = unit_converter.UNITS_DICT
+# Single default UnitConverter instance
+DEFAULT_CONVERTER = UnitConverter(unit_set="standard")
 
-    
+def _to_snake_case(name: str) -> str:
+    """Convert CamelCase to snake_case."""
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+
 @attr.s(auto_attribs=True)
 class PhysicalProperty:
     """
@@ -42,13 +45,14 @@ class PhysicalProperty:
         these will be automatically converted to the user-specified unit.
     """
     name: str = attr.ib(default=attr.Factory(lambda self: self.__class__.__name__.lower(), takes_self=True))
-    unit: str = attr.ib(default=None)  # Allow None for dimensionless
+    unit: str = attr.ib(default=None)
     doc: str = ""
     _value: np.ndarray = attr.ib(
         default=attr.Factory(lambda: np.array([], dtype=float)),
         converter=lambda v: np.array(v, dtype=float) if v is not None else np.array([], dtype=float)
     )
     bounds: Optional[Tuple[Optional[float], Optional[float]]] = attr.ib(default=None)
+    converter: UnitConverter = attr.ib(default=DEFAULT_CONVERTER)  # Shared default
 
     @bounds.validator
     def check_bounds(self, attribute, value):
@@ -58,30 +62,30 @@ class PhysicalProperty:
         Checks that bounds is either None or a tuple of two numbers (or None) in the form (lower, upper),
         where lower and upper are either None or numbers, and lower is less than or equal to upper.
         """
-        if value is not None:
-            if not (isinstance(value, tuple) and len(value) == 2):
-                raise ValueError("bounds must be a tuple of two numbers (or None) (lower, upper)")
-            lower, upper = value
-            if lower is not None and not isinstance(lower, (int, float)):
-                raise ValueError("Lower bound must be a number or None")
-            if upper is not None and not isinstance(upper, (int, float)):
-                raise ValueError("Upper bound must be a number or None")
-            if lower is not None and upper is not None and lower > upper:
-                raise ValueError("bounds: lower bound must be less than or equal to upper bound")
+        if value is None:
+            return
+        if not (isinstance(value, tuple) and len(value) == 2):
+            raise ValueError("bounds must be a tuple of two numbers (or None) (lower, upper)")
+        lower, upper = value
+        if lower is not None and not isinstance(lower, (int, float)):
+            raise ValueError("Lower bound must be a number or None")
+        if upper is not None and not isinstance(upper, (int, float)):
+            raise ValueError("Upper bound must be a number or None")
+        if lower is not None and upper is not None and lower > upper:
+            raise ValueError("bounds: lower bound must be less than or equal to upper bound")
 
     def _convert_default_bound(self, bound_value: float, standard_unit: str) -> float:
         """
-        Create a temporary instance (without calling __init__) to convert a default bound
-        from the standard unit to the current unit.
+        Create a temporary instance to convert a default bound from the standard unit to the current unit.
         """
-        temp = object.__new__(self.__class__)
-        # Manually set the necessary attributes.
-        temp.name = self.name
-        temp._value = np.array([bound_value], dtype=float)
-        temp.unit = standard_unit
-        temp.doc = self.doc
-        temp.bounds = None  # Skip bounds conversion on the temporary instance.
-        # Use the instance's convert() method.
+        temp = self.__class__(
+            name=self.name,
+            value=[bound_value],
+            unit=standard_unit,
+            doc=self.doc,
+            bounds=None,
+            converter=self.converter
+        )
         converted = temp.convert(self.unit)
         return float(converted[0])
 
@@ -92,10 +96,16 @@ class PhysicalProperty:
         If no bounds were provided but the subclass defines DEFAULT_BOUNDS (in standard units),
         convert these default bounds to the instance unit.
         """
+        if self.unit:
+            prop_type = self._get_property_type()
+            allowable = self.converter.get_allowable_units(prop_type)
+            if self.unit.lower() not in [u.lower() for u in allowable]:
+                raise ValueError(f"Unit '{self.unit}' not supported for {prop_type}. Allowable: {allowable}")
+    
         # If no bounds are provided and DEFAULT_BOUNDS exists, convert them.
         if self.bounds is None and hasattr(self.__class__, "DEFAULT_BOUNDS"):
             std_bounds = self.__class__.DEFAULT_BOUNDS  # in standard units
-            std_unit = unit_converter.DEFAULT_UNIT_SET.get(self._get_property_type(), self.unit)
+            std_unit = self.converter.DEFAULT_UNIT_SET.get(self._get_property_type(), self.unit)
             if std_unit == self.unit:
                 object.__setattr__(self, 'bounds', std_bounds)
             else:
@@ -116,6 +126,9 @@ class PhysicalProperty:
         #stack = "".join(traceback.format_stack(limit=10))
         logger.info(f"Created {self.__class__.__name__} instance") #: {self}\nStack trace:\n{stack}")
 
+    # ---------------------------------------
+    # region: Value handling
+    # ---------------------------------------
     @property
     def value(self) -> np.ndarray:
         """
@@ -206,10 +219,7 @@ class PhysicalProperty:
         new_value : np.ndarray or float
             The new value(s).
         """
-        if isinstance(new_value, PhysicalProperty):
-            new_value = new_value.value
-        new_val_array = np.array(new_value, dtype=float)
-        new_val_array = self._check_and_clip_bounds(new_val_array)
+        new_val_array = self._convert_and_clip_new_value(new_value)
         if self.bounds is not None:
             lower, upper = self.bounds
             if lower is not None and np.any(new_val_array < lower):
@@ -230,10 +240,7 @@ class PhysicalProperty:
         prepend : bool, optional
             If True, append the new values to the front of the array. Defaults to False.
         """
-        if isinstance(new_value, PhysicalProperty):
-            new_value = new_value.value
-        new_val_array = np.array(new_value, dtype=float)
-        new_val_array = self._check_and_clip_bounds(new_val_array)
+        new_val_array = self._convert_and_clip_new_value(new_value)
         current_value = self._value if self._value.size > 0 else np.array([], dtype=float)
         if prepend:
             updated_value = np.append(new_val_array, current_value)
@@ -241,6 +248,14 @@ class PhysicalProperty:
             updated_value = np.append(current_value, new_val_array)
         self.update_value(updated_value)
         logger.info(f"Appended {'to the front' if prepend else ''} {self.__class__.__name__} instance: {self}")
+
+    def _convert_and_clip_new_value(self, new_value):
+        """Utility to convert and clip a new value array."""
+        if isinstance(new_value, PhysicalProperty):
+            new_value = new_value.value
+        result = np.array(new_value, dtype=float)
+        result = self._check_and_clip_bounds(result)
+        return result
 
     def copy(self) -> 'PhysicalProperty':
         """
@@ -293,12 +308,18 @@ class PhysicalProperty:
         ------
         ValueError
             If conversion is not supported.
+        
+        Notes
+        -----
+        This method provides a generic conversion utility. 
+        Some subclasses may have more specific conversion logic that requires an override of this method.
         """
         if self.unit == to_unit or (self.unit is None and to_unit is None):
             return self.value
         if self.unit is None or to_unit is None:
             raise ValueError("Cannot convert between dimensionless and dimensional units.")
-        raise ValueError(f"Conversion from {self.unit} to {to_unit} not supported in base class.")
+        prop_type = self._get_property_type()
+        return self.converter.convert(prop_type, self.value, self.unit, to_unit)
 
     def to(self, to_unit: str) -> 'PhysicalProperty':
         """
@@ -331,7 +352,7 @@ class PhysicalProperty:
         PhysicalProperty
             A new instance in the standard unit.
         """
-        standard_unit = unit_converter.DEFAULT_UNIT_SET.get(self._get_property_type(), self.unit)
+        standard_unit = self.converter.DEFAULT_UNIT_SET.get(self._get_property_type(), self.unit)
         return self.to(standard_unit)
 
     @classmethod
@@ -356,21 +377,21 @@ class PhysicalProperty:
             An instance of the appropriate subclass.
         """
         unit_key = unit.lower() if unit else None
-        prop_type = unit_converter.get_unit_type(unit_key)
+        prop_type = cls.convert.get_unit_type(unit_key)
         if not prop_type:
             logger.warning(f"Unknown unit '{unit}', defaulting to generic PhysicalProperty.")
             return cls(name=name, value=value, unit=unit, doc=doc)
-        if 'flow' in prop_type:
-            class_name = 'Flow'
-        else:
-            class_name = prop_type.capitalize()
+        class_name = 'Flow' if 'flow' in prop_type else prop_type.capitalize()
         prop_class = globals().get(class_name)
         if not prop_class or not issubclass(prop_class, PhysicalProperty):
             logger.warning(f"Class '{class_name}' not found or not a PhysicalProperty subclass, using PhysicalProperty.")
             return cls(name=name, value=value, unit=unit, doc=doc)
         return prop_class(name=name, value=value, unit=unit, doc=doc)
+    # endregion
 
-    # region NUMPY METHODS
+    # ---------------------------------------
+    # region: NUMPY METHODS
+    # ---------------------------------------
     def interpolate(self, new_size: int) -> 'PhysicalProperty':
         """
         Interpolate the value array to a new size.
@@ -389,6 +410,18 @@ class PhysicalProperty:
         new_points = np.linspace(0, 1, new_size)
         interpolated_value = np.interp(new_points, original_points, self.value)
         return self.__class__(name=self.name, value=interpolated_value, unit=self.unit, doc=self.doc)
+
+    # array utilities
+    def tolist(self) -> List[float]:
+        """
+        Convert the value array to a list.
+
+        Returns
+        -------
+        List[float]
+            The value array as a list.
+        """
+        return self.value.tolist()
 
     # basic mathematical operations
     def mean(self) -> float:
@@ -531,7 +564,9 @@ class PhysicalProperty:
         return np.full_like(self.value, fill_value, **kwargs)
     # endregion
     
+    # ---------------------------------------
     # region SERIALIZATION
+    # ---------------------------------------
     def to_dict(self, tolist=True) -> Dict[str, Any]:
         """
         Convert the PhysicalProperty instance to a dictionary.
@@ -576,10 +611,8 @@ class PhysicalProperty:
         d_copy["value"] = np.array(d_copy["value"], dtype=float)
         d_copy.setdefault("unit", None)
         d_copy.setdefault("doc", "")
-        
-        # Check for type and instantiate the correct subclass
-        prop_type = d_copy.pop("type", None)
-        if prop_type:
+
+        if prop_type := d_copy.pop("type", None):
             prop_class = globals().get(prop_type, PhysicalProperty)
             if not issubclass(prop_class, PhysicalProperty):
                 logger.warning(f"Type '{prop_type}' not a PhysicalProperty subclass, using PhysicalProperty.")
@@ -599,7 +632,20 @@ class PhysicalProperty:
         str
             The property type (e.g. "time", "temperature").
         """
-        return self.__class__.__name__.lower()
+        class_name = _to_snake_case(self.__class__.__name__)
+        if class_name in self.converter.UNITS_DICT:
+            return class_name
+        # Check ALT_KEYS for a match
+        for std_key, alt_keys in self.converter.ALT_KEYS.items():
+            if class_name in alt_keys or class_name == std_key:
+                return std_key
+        # Handle known composite types
+        composites = {
+            "mass_flux": "mass_flux",
+            "velocity": "velocity",
+            "density": "density",
+        }
+        return composites.get(class_name, class_name)  # Fallback to class_name if not found
     # endregion
     
     # region PLOT
@@ -695,7 +741,7 @@ class PhysicalProperty:
         """
         if isinstance(key, tuple) and ('val' in key or 'value' in key):
             # Extract the indexing part, excluding 'val'
-            idx = tuple(k for k in key if k != 'val' and k != 'value')
+            idx = tuple(k for k in key if k not in ['val', 'value'])
             return self.value[idx] if idx else self.value
         return self.__class__(name=self.name, value=self.value[key], unit=self.unit, doc=self.doc)
     

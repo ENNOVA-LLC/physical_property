@@ -13,10 +13,10 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.8"
 dependencies = [
-    "numpy",
     "attrs",
-    "plotly",
+    "numpy",
     "scipy",
+    "plotly",
     "loguru",
 ]
 

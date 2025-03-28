@@ -24,11 +24,13 @@ To create a Conda environment for this package:
    ```bash
    conda env create -f env.yaml
    ```
+
 3. Activate the environment:
 
    ```bash
    conda activate physical_property_env
    ```
+
 4. Install the package:
 
    ```bash

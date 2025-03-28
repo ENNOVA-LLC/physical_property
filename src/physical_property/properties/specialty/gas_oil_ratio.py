@@ -3,14 +3,11 @@
 Gas-Oil Ratio property supporting conversion among volumetric, mass, and molar ratios.
 """
 import attr
-from typing import Union, Dict, Any, Optional, ClassVar
+from typing import Union, Dict, Optional
 import numpy as np
 
 from ...base import PhysicalProperty
 from ..thermodynamic import Density, MolarMass
-from ...units import UnitConverter
-unit_converter = UnitConverter(unit_set='standard')
-UNITS_DICT = unit_converter.UNITS_DICT
 
 @attr.s(auto_attribs=True)
 class GasOilRatio(PhysicalProperty):
@@ -26,21 +23,15 @@ class GasOilRatio(PhysicalProperty):
     - Volumetric ⇄ Mass: provide gas_density and oil_density (in consistent units, e.g. kg/m³)
     - Mass ⇄ Molar: provide gas_MW and oil_MW (molecular weights)
     """
-    UNITS: ClassVar[Dict[str, Any]] = {
-        'volume': UNITS_DICT["volume"],
-        'mass':   UNITS_DICT["mass"],
-        'mole':   UNITS_DICT["mol"],
-    }
-
     def _get_ratio_type(self, unit: str) -> str:
         """Utility to determine the type of GasOilRatio (volume, mass, or mole) from its unit."""
         u = unit.lower()
         gas_unit, oil_unit = u.split("/")
-        if gas_unit in self.UNITS['volume'] and oil_unit in self.UNITS['volume']:
+        if gas_unit in self.converter.UNITS_DICT['volume'] and oil_unit in self.converter.UNITS_DICT['volume']:
             return "volume"
-        elif gas_unit in self.UNITS['mass'] and oil_unit in self.UNITS['mass']:
+        elif gas_unit in self.converter.UNITS_DICT['mass'] and oil_unit in self.converter.UNITS_DICT['mass']:
             return "mass"
-        elif gas_unit in self.UNITS['mole'] and oil_unit in self.UNITS['mole']:
+        elif gas_unit in self.converter.UNITS_DICT['mole'] and oil_unit in self.converter.UNITS_DICT['mole']:
             return "mole"
         else:
             raise ValueError(f"Unrecognized unit type for GasOilRatio: {unit}")
@@ -48,24 +39,24 @@ class GasOilRatio(PhysicalProperty):
     def _convert_within_volumetric(self, value: np.ndarray, from_unit: str, to_unit: str) -> np.ndarray:
         gas_from, oil_from = from_unit.lower().split("/")
         gas_to, oil_to = to_unit.lower().split("/")
-        factor_gas = unit_converter.volume(1.0, gas_from, gas_to)
-        factor_oil = unit_converter.volume(1.0, oil_from, oil_to)
+        factor_gas = self.converter.volume(1.0, gas_from, gas_to)
+        factor_oil = self.converter.volume(1.0, oil_from, oil_to)
         factor = factor_gas / factor_oil
         return value * factor
 
     def _convert_within_mass(self, value: np.ndarray, from_unit: str, to_unit: str) -> np.ndarray:
         gas_from, oil_from = from_unit.lower().split("/")
         gas_to, oil_to = to_unit.lower().split("/")
-        factor_gas = unit_converter.mass(1.0, gas_from, gas_to)
-        factor_oil = unit_converter.mass(1.0, oil_from, oil_to)
+        factor_gas = self.converter.mass(1.0, gas_from, gas_to)
+        factor_oil = self.converter.mass(1.0, oil_from, oil_to)
         factor = factor_gas / factor_oil
         return value * factor
 
     def _convert_within_molar(self, value: np.ndarray, from_unit: str, to_unit: str) -> np.ndarray:
         gas_from, oil_from = from_unit.lower().split("/")
         gas_to, oil_to = to_unit.lower().split("/")
-        factor_gas = unit_converter.mol(1.0, gas_from, gas_to)
-        factor_oil = unit_converter.mol(1.0, oil_from, oil_to)
+        factor_gas = self.converter.mol(1.0, gas_from, gas_to)
+        factor_oil = self.converter.mol(1.0, oil_from, oil_to)
         factor = factor_gas / factor_oil
         return value * factor
 

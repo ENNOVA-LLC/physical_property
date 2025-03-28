@@ -1,4 +1,4 @@
-""" `__init__`
+""" `physical_property`
 
 Top-level module for the physical_property package.
 Provides access to physical property classes and utilities.

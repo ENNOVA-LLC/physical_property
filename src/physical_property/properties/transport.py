@@ -3,13 +3,11 @@
 Contains classes for transport properties (e.g., viscosity, shear stress).
 """
 import attr
-from typing import Optional, Tuple, ClassVar
+from typing import Optional, Tuple
 import numpy as np
 
 from ..base import PhysicalProperty
 from .thermodynamic import Density
-from ..units import UnitConverter
-unit_converter = UnitConverter(unit_set='standard')
 
 @attr.s(auto_attribs=True)
 class Flow(PhysicalProperty):
@@ -34,7 +32,7 @@ class Flow(PhysicalProperty):
             return self.value
         if density is None:
             density = Density(name="density", value=0.0, unit="kg/m3")
-        return unit_converter.flow(self.value, self.unit, to_unit, dens=density.value, dens_unit=density.unit)
+        return self.converter.flow(self.value, self.unit, to_unit, dens=density.value, dens_unit=density.unit)
 
     def to(self, to_unit: str, density: Optional[Density] = None) -> 'Flow':
         """
@@ -60,7 +58,7 @@ class Viscosity(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.viscosity(self.value, self.unit, to_unit)
+        return self.converter.viscosity(self.value, self.unit, to_unit)
     
 @attr.s(auto_attribs=True)
 class ShearStress(PhysicalProperty):
@@ -68,7 +66,7 @@ class ShearStress(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.pressure(self.value, self.unit, to_unit)
+        return self.converter.pressure(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class PressureGradient(PhysicalProperty):
@@ -83,8 +81,8 @@ class PressureGradient(PhysicalProperty):
         except Exception as e:
             raise ValueError("Pressure gradient units must be in 'pressure/length' format (e.g., 'bar/m').") from e
 
-        pressure_factor = unit_converter.pressure(1, P_from, P_to)
-        length_factor = unit_converter.length(1, L_from, L_to)
+        pressure_factor = self.converter.pressure(1, P_from, P_to)
+        length_factor = self.converter.length(1, L_from, L_to)
 
         # Adjust the pressure gradient: new_value = original_value * (pressure conversion factor / length conversion factor)
         return self.value * (pressure_factor / length_factor)
@@ -95,7 +93,7 @@ class SurfaceTension(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.viscosity(self.value, self.unit, to_unit)
+        return self.converter.viscosity(self.value, self.unit, to_unit)
         
     @classmethod
     def from_parachor(cls, parachor, density_liq: Density, density_vap: Density) -> 'SurfaceTension':
@@ -137,7 +135,7 @@ class MassFlux(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("mass_flux", self.value, self.unit, to_unit)
+        return self.converter.convert("mass_flux", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Diffusivity(PhysicalProperty):
@@ -145,7 +143,7 @@ class Diffusivity(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("diffusivity", self.value, self.unit, to_unit)
+        return self.converter.convert("diffusivity", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Dispersion(PhysicalProperty):
@@ -153,7 +151,7 @@ class Dispersion(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("dispersion", self.value, self.unit, to_unit)
+        return self.converter.convert("dispersion", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class ThermalConductivity(PhysicalProperty):
@@ -161,7 +159,7 @@ class ThermalConductivity(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("thermal_conductivity", self.value, self.unit, to_unit)
+        return self.converter.convert("thermal_conductivity", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class HeatTransferCoefficient(PhysicalProperty):
@@ -169,7 +167,7 @@ class HeatTransferCoefficient(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("heat_transfer_coefficient", self.value, self.unit, to_unit)
+        return self.converter.convert("heat_transfer_coefficient", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class HeatCapacity(PhysicalProperty):
@@ -177,4 +175,4 @@ class HeatCapacity(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("heat_capacity", self.value, self.unit, to_unit)
+        return self.converter.convert("heat_capacity", self.value, self.unit, to_unit)

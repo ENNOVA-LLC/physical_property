@@ -7,8 +7,6 @@ from typing import Tuple, ClassVar
 import numpy as np
 
 from ..base import PhysicalProperty
-from ..units import UnitConverter
-unit_converter = UnitConverter(unit_set='standard')
 
 @attr.s(auto_attribs=True)
 class Mass(PhysicalProperty):
@@ -16,7 +14,7 @@ class Mass(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.mass(self.value, self.unit, to_unit)
+        return self.converter.mass(self.value, self.unit, to_unit)
     
     def to_moles(self, MW: float) -> 'Moles':
         """
@@ -30,7 +28,7 @@ class Moles(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.mol(self.value, self.unit, to_unit)
+        return self.converter.mol(self.value, self.unit, to_unit)
     
     def to_mass(self, MW: float) -> 'Mass':
         """
@@ -45,7 +43,7 @@ class Composition(PhysicalProperty):
     def convert(self, to_unit: str, MW=None) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.convert_x("composition", self.value, self.unit, to_unit, MW=MW)
+        return self.converter.convert("composition", self.value, self.unit, to_unit, MW=MW)
     
 @attr.s(auto_attribs=True)
 class MolarMass(PhysicalProperty):
@@ -61,12 +59,11 @@ class MolarMass(PhysicalProperty):
             raise ValueError("Molar mass units must be in 'mass/mole' format (e.g., 'g/mol').") from e
 
         # Convert a unit value of 1 for mass and mole parts
-        mass_factor = unit_converter.mass(1, mass_from, mass_to)
-        mole_factor = unit_converter.mol(1, mole_from, mole_to)
+        mass_factor = self.converter.mass(1, mass_from, mass_to)
+        mole_factor = self.converter.mol(1, mole_from, mole_to)
 
         # Adjust the molar mass: new_value = original_value * (mass conversion factor / mole conversion factor)
-        new_value = self.value * (mass_factor / mole_factor)
-        return new_value
+        return self.value * (mass_factor / mole_factor)
 
 @attr.s(auto_attribs=True)
 class Temperature(PhysicalProperty):
@@ -75,7 +72,7 @@ class Temperature(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.temperature(self.value, self.unit, to_unit)
+        return self.converter.temperature(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Pressure(PhysicalProperty):
@@ -84,7 +81,7 @@ class Pressure(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.pressure(self.value, self.unit, to_unit)
+        return self.converter.pressure(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Density(PhysicalProperty):
@@ -93,7 +90,7 @@ class Density(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.density(self.value, self.unit, to_unit)
+        return self.converter.density(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Volume(PhysicalProperty):
@@ -102,7 +99,7 @@ class Volume(PhysicalProperty):
     def convert(self, to_unit: str) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
-        return unit_converter.volume(self.value, self.unit, to_unit)
+        return self.converter.volume(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class SolubilityParameter(PhysicalProperty):

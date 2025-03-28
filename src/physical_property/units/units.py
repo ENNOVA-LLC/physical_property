@@ -11,6 +11,7 @@ import numpy as np
 from loguru import logger
 
 from .unit_sets import get_unit_set
+from .unit_utils import UNITS_DICT, DEFAULT_UNIT_SET, ALT_KEYS
 
 @attrs.define
 class UnitConverter:
@@ -30,142 +31,17 @@ class UnitConverter:
     MW: Any = None
     
     # Class-level attributes
-    UNITS_DICT: ClassVar[Dict[str, Dict[str, float]]] = {
-        "temperature": {
-            "k": 1, "kelvin": 1, # standard
-            "c": 1, "celsius": 1,
-            "f": 1, "fahrenheit": 1,
-            "r": 1, "rankine": 1,
-        },
-        "pressure": {
-            "bar": 1, "bara": 1, # standard
-            "kpa": 0.01, "kilopascal": 0.01,
-            "mbar": 0.001, "millibar": 0.001,
-            "pa": 1e-5, "pascal": 1e-5,
-            "mpa": 10, "megapascal": 10, 
-            "gpa": 1.e4, "gigapascal": 1.e4, 
-            "atm": 1.01325, "atmosphere": 1.01325,
-            "psi": 0.06894757, "psia": 0.06894757,
-            "ksi": 68.947572932,
-            "torr": 1.01325 / 760,
-            "inh2o": 0.0024908891
-        },
-        "length": {
-            "m": 1., "meter": 1., # standard
-            "km": 1000., "kilometer": 1000.,
-            "cm": 0.01, "centimeter": 0.01,
-            "mm": 0.001, "millimeter": 0.001,
-            "micron": 1e-6, "micrometer": 1e-6,
-            "angstrom": 1e-10,
-            "mile": 1/1609,
-            "yd": 0.9144, "yard": 0.9144,
-            "ft": 0.3048, "feet": 0.3048,
-            "in": 0.0254, "inch": 0.0254,
-        },
-        "mass": {
-            "g": 1,         "gram": 1, # standard
-            "kg": 1000,     "kilogram": 1000,
-            "mg": 1e-3,     "milligram": 1e-3,
-            "lb": 453.592,  "lbm": 453.592,
-            "oz": 28.3495,  "ounce": 28.3495,
-            "slug": 14593.9
-        },
-        "mol": {
-            "mol": 1., "mole": 1.,
-            "kmol": 1000., "kilomole": 1000.,
-            "mmol": 1e-3, "millimole": 1e-3,
-        },
-        "time": {
-            "s": 1, "sec": 1, # standard
-            "year": 86400 * 365., "yr": 86400*365.,
-            "month": 86400 * 30.42,
-            "week": 86400 * 7,
-            "day": 86400, "d": 86400,
-            "hr": 3600, "h": 3600,
-            "min": 60,
-        },
-        "volume": {
-            "m3": 1.,  "cubic_meter": 1., "m³": 1.,# standard
-            "l": 0.001, "liter": 0.001,
-            "ml": 1e-6, "milliliter": 1e-6,
-            "cm3": 1e-6, "cc": 1e-6, "cm³": 1., 
-            "gal": 0.00378541, "gallon": 0.00378541,
-            "ft3": 0.02831684661, "cf": 0.02831684661, "ft³": 1.,
-            "bbl": 0.15898730, "barrel": 0.15898730,
-            "us_bbl": 0.11924636299, "us_barrel": 0.11924636299,
-            "fl_oz": 2.95735e-5, "fluid_ounce": 2.95735e-5,
-        },
-        "viscosity": {
-            "pa.s": 1., "pa*s": 1.,  # standard
-            "mpa.s": 0.001, "mpa*s": 0.001,
-            "cp": 0.001,
-            "poise": 10,
-            "dynes/cm2": 10, "dynes/cm²": 10,
-            "lbf.s/in2": 6894.75, "lbf.s/in²": 6894.75, "lbf*s/in2": 6894.75, "lbf*s/in²": 6894.75,
-        },
-        "kinematic_viscosity": {
-            "st": 1., "stoke": 1.,    # standard
-            "cst": 0.01, "centistoke": 0.01, 
-            "m2/s": 0.0001, "m²/s": 0.0001,
-            "cm2/s": 1., "cm²/s": 1.,
-            "mm2/s": 100., "mm²/s": 100.,
-            "ft2/h": 3.874467, "ft²/h": 3.874467,
-            "ft2/s": 0.00107639, "ft²/s": 0.00107639,
-            "in2/s": 0.155, "in²/s": 0.155,
-        },
-        "velocity": {
-            "m/s": 1.,  # standard
-            "cm/s": 0.01,
-            "mm/s": 0.001,
-            "ft/s": 0.3048,
-            "in/s": 0.0254,
-            "km/h": 1 / 3.6, "kph": 1 / 3.6,
-            "mi/h": 0.44704, "mph": 0.44704,
-            "knot": 0.514444,
-        },
-        "composition": {
-            "units_mass": {"kg", "g", "mg", "wtf", "wt%"},
-            "units_mols": {"kmol", "mol", "mmol", "molf", "mol%"},
-        }
-    }
-    
-    DEFAULT_UNIT_SET: ClassVar[Dict[str, str]] = {
-        "temperature":      "kelvin",
-        "pressure":         "bar",
-        "length":           "meter",
-        "mass":             "kg",
-        "mol":              "mol",
-        "time":             "s",
-        "volume":           "m3",
-        "viscosity":        "pa.s",
-        "kinematic_viscosity": "st",
-        "velocity":         "m/s",
-        "composition":      "mol",
-    }
-    
-    ALT_KEYS: ClassVar[Dict[str, List[str]]] = {
-        "temperature":      ["T", "temp"],
-        "pressure":         ["P"],
-        "length":           ["L", "distance"],
-        "mass":             ["m"],
-        "mol":              ["mole", "molar"],
-        "time":             ["t"],
-        "volume":           ["V", "vol"],
-        "density":          ["D", "dens", "mass_density", "density_mass"],
-        "density_mol":      ["D_mol", "dens_mol", "molar_density"],
-        "viscosity":        ["visco", "dynamic_visco", "dynamic_viscosity"],
-        "kinematic_viscosity": ["kinematic_visco"],
-        "volume_flow":      ["vflow", "volflow", "vol_flow"],
-        "mass_flow":        ["mflow", "massflow"],
-        "mol_flow":         ["molar_flow", "molflow"],
-        "velocity":         ["velo", "u", "speed"],
-        "composition":      ["compo", "amount", "amounts", "n", "ni", "nik"],
-    }
-    
+    UNITS_DICT: ClassVar[Dict[str, Dict[str, float]]] = UNITS_DICT
+    DEFAULT_UNIT_SET: ClassVar[Dict[str, str]] = DEFAULT_UNIT_SET
+    ALT_KEYS: ClassVar[Dict[str, List[str]]] = ALT_KEYS
+
     def __attrs_post_init__(self):
         logger.info(f"UnitConverter initialized with unit_set: {self.unit_set}")
         self.unit_set = self.get_unit_set(self.unit_set)
-        
+    
+    # --------------------------------------
+    # region: Utilities
+    # --------------------------------------
     def get_unit_set(self, unit_set) -> Dict[str, str]:
         """
         Retrieves the unit set based on the `unit_set` input.
@@ -183,13 +59,12 @@ class UnitConverter:
         """
         if unit_set is None:
             unit_set = self.DEFAULT_UNIT_SET
-        else:
-            if isinstance(unit_set, str):
-                unit_set = get_unit_set(unit_set, flat_dict=True)
+        elif isinstance(unit_set, str):
+            unit_set = get_unit_set(unit_set, flat_dict=True)
 
         if not isinstance(unit_set, dict):
             raise ValueError("Invalid input: `unit_set`.")
-        
+
         # Translate keys using ALT_KEYS
         unit_set_standard = {}
         for key, value in unit_set.items():
@@ -199,68 +74,48 @@ class UnitConverter:
                     break
             else:
                 unit_set_standard[key] = value
-        
+
         return unit_set_standard
     
-    @staticmethod
-    def _unit_error_check(unit: str, unit_type: str) -> None:
-        """Check if user provided unsupported unit."""
-        if "/" in unit:
-            units = unit.split("/")
-            for u in units:
-                if u not in UnitConverter.UNITS_DICT.get(unit_type, {}):
-                    raise ValueError(f"Unsupported unit: {u} for unit type: {unit_type}")
+    def get_allowable_units(self, unit_type: str) -> List[str]:
+        """Returns a list of allowable units for a given unit type, considering alternative keys.
+    
+        Parameters
+        ----------
+        unit_type : str
+            The unit type or its alternative key.
+        
+        Returns
+        -------
+        List[str]
+            A list of allowable units for the given unit type.
+        """
+        # Check if the provided unit_type is an alternative key
+        for std_key, alt_keys in self.ALT_KEYS.items():
+            if unit_type in alt_keys or unit_type == std_key:
+                unit_type = std_key
+                break
         else:
-            if unit not in UnitConverter.UNITS_DICT.get(unit_type, {}):
-                raise ValueError(f"Unsupported unit: {unit} for unit type: {unit_type}")
+            raise ValueError(f"Unsupported unit type: {unit_type}")
 
-
-    @staticmethod
-    def _handle_unit_prefix(unit: str, unit_type: str) -> Tuple[str, float]:
-        """Handle unit prefix like 'MM' and 'M' for volume units."""
-        if unit_type in ["volume", "flow"]:
-            if unit.startswith("MM"):
-                return unit[2:], 1e6
-            elif unit.startswith("M") and unit not in {"m3"}:
-                return unit[1:], 1e3
-        return unit, 1
-
-    @staticmethod
-    def _preproc_inputs(val, unit_in:str, unit_out:str, unit_type:str) -> Tuple[np.ndarray, str, str]:
-        """ `unit` string pre-processor."""
-        def standard_string(s:str) -> str:
-            """Removes the following elements and returns lowercase string.
-            elements: ['°', 'S', '^']
-            """
-            if s.startswith("S"):
-                s = s[1:]  # Remove the leading "S" if it's uppercase (denotes "standard" volume)
-            return s.replace("°", "").replace("^", "").lower()
-        
-        # Handle prefixes and standardize units
-        unit_in, prefix_in = UnitConverter._handle_unit_prefix(unit_in.lower(), unit_type)
-        unit_out, prefix_out = UnitConverter._handle_unit_prefix(unit_out.lower(), unit_type)
-
-        # Apply prefix multipliers
-        val = np.array(val, dtype=np.float64) * prefix_in / prefix_out
-        
-        # standardize inputs
-        unit_in = standard_string(unit_in)      # unit strings
-        unit_out = standard_string(unit_out)
-        
-        # check if unit strings are supported
-        UnitConverter._unit_error_check(unit_in, unit_type)
-        UnitConverter._unit_error_check(unit_out, unit_type)
-        return val, unit_in, unit_out
-
-    @staticmethod
-    def _master_convert(val, unit_in:str, unit_out:str, unit_type:str) -> np.ndarray:
-        """Master converter for units that follow a simple multiplicative conversion."""
-        val, unit_in, unit_out = UnitConverter._preproc_inputs(val, unit_in, unit_out, unit_type)
-        return val * UnitConverter.UNITS_DICT[unit_type][unit_in] / UnitConverter.UNITS_DICT[unit_type][unit_out]
-
+        return list(self.UNITS_DICT[unit_type].keys())
+    
     def get_unit_type(self, unit: str) -> Tuple[str, List]:
-        """Determine the unit type for a given unit string, including composite units."""
-        unit = unit.replace(" ", "").replace("%", "")  # Remove some unwanted characters for consistency
+        """Determine the unit type for a given unit string, including composite units.
+        
+        Parameters
+        ----------
+        unit : str
+            The unit string to be checked.
+        
+        Returns
+        -------
+        str
+            The unit type.
+        """
+        unwanted = ["°", " ", "%"]  # Characters to remove for standardization
+        for s in unwanted:
+            unit = unit.replace(s, "")  # Remove unwanted characters for consistency
         if "/" in unit:
             unit_parts = unit.split("/")
             if len(unit_parts) == 2:
@@ -283,8 +138,68 @@ class UnitConverter:
                     return key
             raise ValueError(f"Unsupported unit: {unit}")
         
-    # conversion methods
-    def convert(self, data: Dict[str, Any], unit_set=None) -> Dict[str, Any]:
+    @staticmethod
+    def _unit_error_check(unit: str, unit_type: str) -> None:
+        """Check if user provided unsupported unit."""
+        if "/" in unit:
+            units = unit.split("/")
+            for u in units:
+                if u not in UnitConverter.UNITS_DICT.get(unit_type, {}):
+                    raise ValueError(f"Unsupported unit: {u} for unit type: {unit_type}")
+        elif unit not in UnitConverter.UNITS_DICT.get(unit_type, {}):
+            raise ValueError(f"Unsupported unit: {unit} for unit type: {unit_type}")
+
+
+    @staticmethod
+    def _handle_unit_prefix(unit: str, unit_type: str) -> Tuple[str, float]:
+        """Handle unit prefix like 'MM' and 'M' for volume units."""
+        if unit_type in {"volume", "flow"}:
+            if unit.startswith("MM"):
+                return unit[2:], 1e6
+            elif unit.startswith("M") and unit not in {"m3"}:
+                return unit[1:], 1e3
+        return unit, 1
+
+    @staticmethod
+    def _preproc_inputs(val, unit_in:str, unit_out:str, unit_type:str) -> Tuple[np.ndarray, str, str]:
+        """ `unit` string pre-processor."""
+        def standard_string(s:str) -> str:
+            """Removes the following elements and returns lowercase string.
+            elements: ['°', 'S', '^']
+            """
+            unwanted_chars = ["°", "^"]  # Characters to remove for standardization
+            s = s.removeprefix("S")
+            for element in unwanted_chars:
+                s = s.replace(element, "")  # Remove unwanted characters for consistency
+            return s.lower()
+
+        # Handle prefixes and standardize units
+        unit_in, prefix_in = UnitConverter._handle_unit_prefix(unit_in.lower(), unit_type)
+        unit_out, prefix_out = UnitConverter._handle_unit_prefix(unit_out.lower(), unit_type)
+
+        # Apply prefix multipliers
+        val = np.array(val, dtype=np.float64) * prefix_in / prefix_out
+
+        # standardize inputs
+        unit_s_in = standard_string(unit_in)      # unit strings
+        unit_s_out = standard_string(unit_out)
+
+        # check if unit strings are supported
+        UnitConverter._unit_error_check(unit_s_in, unit_type)
+        UnitConverter._unit_error_check(unit_s_out, unit_type)
+        return val, unit_s_in, unit_s_out
+
+    @staticmethod
+    def _master_convert(val, unit_in:str, unit_out:str, unit_type:str) -> np.ndarray:
+        """Master converter for units that follow a simple multiplicative conversion."""
+        val, unit_in, unit_out = UnitConverter._preproc_inputs(val, unit_in, unit_out, unit_type)
+        return val * UnitConverter.UNITS_DICT[unit_type][unit_in] / UnitConverter.UNITS_DICT[unit_type][unit_out]
+    # endregion
+    
+    # --------------------------------------
+    # region: Generic conversion methods
+    # --------------------------------------
+    def convert_data(self, data: Dict[str, Any], unit_set=None) -> Dict[str, Any]:
         """
         Converts `data` (containing keys {'unit', 'value'}) to the specification in `unit_set`.
         
@@ -311,11 +226,11 @@ class UnitConverter:
         def convert_single_entry(details: dict, unit_set: dict) -> dict:
             unit_in = details['unit']
             val = details['value']
-            
+
             # Extract unit_type (if provided) or set it based on `unit_in`
             unit_type = details.get('unit_type', details.get('property'))
             unit_type = unit_type or self.get_unit_type(unit_in)
-            
+
             # Set `unit_out`
             if unit_type == "composite":
                 unit_in_parts = unit_in.split("/")
@@ -324,23 +239,19 @@ class UnitConverter:
                 unit_out = unit_set.get(unit_type, unit_in)
 
             # Convert
-            val_out = self.convert_x(unit_type, val, unit_in, unit_out)
+            val_out = self.convert(unit_type, val, unit_in, unit_out)
             return {'unit': unit_out, 'value': val_out}
 
         # Retrieve unit_set
-        if unit_set:
-            unit_set = self.get_unit_set(unit_set)
-        else:
-            unit_set = self.unit_set
-
+        unit_set = self.get_unit_set(unit_set) if unit_set else self.unit_set
         # Handle single-entry format
         if 'unit' in data and 'value' in data:
             return convert_single_entry(data, unit_set)
-        
+
         # Handle multi-entry format
         return {key: convert_single_entry(val, unit_set) for key, val in data.items()}
     
-    def convert_x(self, prop: str, val, unit_in: str, unit_out: str, return_unit=False, **kwargs) -> float | np.ndarray | Tuple:
+    def convert(self, prop: str, val, unit_in: str, unit_out: str, **kwargs) -> float | np.ndarray | Tuple:
         """Generic unit converter.
         
         Parameters
@@ -353,8 +264,6 @@ class UnitConverter:
             Unit to convert from.
         unit_out : str
             Unit to convert to.
-        return_unit : bool, optional
-            Whether to return the unit in addition to the value. Defaults to False.
         """
         if prop == "composite":
             unit_in_parts = unit_in.split("/")
@@ -362,7 +271,7 @@ class UnitConverter:
             converted_val_parts = []
             for i, unit_part in enumerate(unit_in_parts):
                 unit_type = self.get_unit_type(unit_part)
-                converted_val_part = self.convert_x(unit_type, val, unit_part, unit_out_parts[i], **kwargs)
+                converted_val_part = self.convert(unit_type, val, unit_part, unit_out_parts[i], **kwargs)
                 converted_val_parts.append(converted_val_part)
             converted_val = np.prod(converted_val_parts)
         else:
@@ -379,16 +288,14 @@ class UnitConverter:
             converted_val = func_convert(val, unit_in, unit_out, **kwargs)
             converted_val = float(converted_val) if converted_val.shape == () else converted_val
 
-        if return_unit:
-            return converted_val, unit_out
-        else:
-            return converted_val
-
-    # region Conversion Methods
+        return converted_val
+    # endregion
+    
+    # --------------------------------------
+    # region: Property conversion Methods
+    # --------------------------------------
     def temperature(self, val, unit_in:str, unit_out:str) -> np.ndarray:
         """Temperature unit converter."""
-        unit_in = unit_in.replace("°", "").lower()
-        unit_out = unit_out.replace("°", "").lower()
         def T_to_K(T:float, unit:str):
             if unit in {"c", "°c", "celsius"}:
                 return T + 273.15
@@ -536,6 +443,37 @@ class UnitConverter:
         unit_out_L, unit_out_t = unit_out.split("/")
         return self.length(self.time(val, unit_out_t, unit_in_t), unit_in_L, unit_out_L) 
 
+    def mass_flux(self, val, unit_in: str, unit_out: str) -> np.ndarray:
+        """Mass flux (mass/area/time) unit converter.
+        
+        Parameters
+        ----------
+        val : float or np.ndarray
+            The value to convert.
+        unit_in : str
+            Input unit (e.g., 'kg/m².s').
+        unit_out : str
+            Output unit (e.g., 'g/cm².s').
+        
+        Returns
+        -------
+        np.ndarray
+            Converted value.
+        """
+        # Split composite units
+        unit_in_m, unit_in_rest = unit_in.split("/", 1)
+        unit_in_a, unit_in_t = unit_in_rest.split(".", 1) if "." in unit_in_rest else unit_in_rest.split("/", 1)
+        unit_out_m, unit_out_rest = unit_out.split("/", 1)
+        unit_out_a, unit_out_t = unit_out_rest.split(".", 1) if "." in unit_out_rest else unit_out_rest.split("/", 1)
+        
+        # Convert each component
+        mass_conv = self.mass(val, unit_in_m, unit_out_m)
+        area_conv = self.length(1.0, unit_out_a, unit_in_a) ** 2  # Area is length squared
+        time_conv = self.time(1.0, unit_out_t, unit_in_t)
+        
+        # Combine conversions: mass / (area * time)
+        return mass_conv / (area_conv * time_conv)
+        
     def volume_flow(self, val, unit_in:str, unit_out:str):
         """Flow rate (volume) unit converter."""
         unit_in_V, unit_in_t = unit_in.split("/")
@@ -665,6 +603,7 @@ class UnitConverter:
             compo = normalize(compo, 100)
 
         return compo
-
+    # endregion
+    
 if __name__ == "__main__":
     logger.info("The `units` module is a utility to be imported.")
