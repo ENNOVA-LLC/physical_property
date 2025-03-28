@@ -589,6 +589,19 @@ class PhysicalProperty:
             "doc": self.doc,
             "bounds": self.bounds,
         }
+    
+    def to_info(self) -> Dict[str, Any]:
+        """Return a dictionary with key property information.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing `(type, name, unit, doc)`.
+        """
+        return {
+            "type": self.__class__.__name__,
+            "name": self.name,
+            "unit": self.unit,
+            "doc": self.doc,
+        }
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> 'PhysicalProperty':
