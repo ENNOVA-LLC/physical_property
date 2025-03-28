@@ -12,6 +12,7 @@ from .properties import (
     MassFlux, Diffusivity, Dispersion, ThermalConductivity, HeatTransferCoefficient, HeatCapacity,
     GasOilRatio,
 )
+from .xy_data import XYData
 from .units.units import UnitConverter
 
 __all__ = [
@@ -22,6 +23,8 @@ __all__ = [
     'Mass', 'Moles', 'Composition', 'MolarMass', 'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
     'Flow', 'Viscosity', 'ShearStress', 'PressureGradient', 'SurfaceTension', 'MassFlux', 'Diffusivity', 'Dispersion', 'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
     'GasOilRatio',
+    # xy-data
+    'XYData',
     # units
     'UnitConverter',
 ]
