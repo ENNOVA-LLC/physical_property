@@ -52,7 +52,7 @@ class PhysicalProperty:
         converter=lambda v: np.array(v, dtype=float) if v is not None else np.array([], dtype=float)
     )
     bounds: Optional[Tuple[Optional[float], Optional[float]]] = attr.ib(default=None)
-    converter: UnitConverter = attr.ib(default=DEFAULT_CONVERTER)  # Shared default
+    converter: UnitConverter = attr.ib(default=DEFAULT_CONVERTER, repr=False)  # Shared default
 
     @bounds.validator
     def check_bounds(self, attribute, value):
