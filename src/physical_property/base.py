@@ -593,7 +593,8 @@ class PhysicalProperty:
     def to_info(self) -> Dict[str, Any]:
         """Return a dictionary with key property information.
 
-        Returns:
+        Returns
+        -------
             Dict[str, Any]: Dictionary containing `(type, name, unit, doc)`.
         """
         return {
