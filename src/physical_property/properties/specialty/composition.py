@@ -82,6 +82,32 @@ class Species:
 
     def __str__(self):
         return f"Species(name='{self.name}', amount={self.amount}, unit='{self.unit}', molar_mass={self.molar_mass})"
+    
+    def to_dict(self) -> Dict[str, Union[str, float]]:
+        """Convert to a dictionary representation."""
+        return {
+            "name": self.name,
+            "amount": self.amount,
+            "unit": self.unit,
+            "molar_mass": self.molar_mass
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Union[str, float]]):
+        """Create a Species instance from a dictionary representation.
+        
+        Parameters
+        ----------
+        data : Dict[str, Union[str, float]]
+            Dictionary representation of a Species instance.
+            Requires the keys `"name": str`, `"amount": float`, `"unit": str`, and `"molar_mass": float`.
+        
+        Returns
+        -------
+        Species
+            A Species instance created from the dictionary representation.
+        """
+        return cls(name=data["name"], amount=data["amount"], unit=data["unit"], molar_mass=data["molar_mass"])
 
 
 @attr.s(auto_attribs=True)
@@ -132,6 +158,36 @@ class SolventBlendSpec:
 
     def __str__(self):
         return f"SolventBlendSpec(base='{self.base}', solvent='{self.solvent}', value={self.value}, unit='{self.unit}')"
+    
+    def to_dict(self) -> Dict[str, Union[str, float]]:
+        """Convert to a dictionary representation."""
+        return {
+            "base": self.base,
+            "solvent": self.solvent,
+            "value": self.value,
+            "unit": self.unit
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Union[str, float]]):
+        """Create a SolventBlendSpec instance from a dictionary representation.
+        
+        Parameters
+        ----------
+        data : Dict[str, Union[str, float]]
+            Dictionary representation of a SolventBlendSpec instance.
+            Requires the keys `"base": str`, `"solvent": str`, `"value": float`, and `"unit": str`.
+        
+        Returns
+        -------
+        SolventBlendSpec
+            A SolventBlendSpec instance created from the dictionary representation.
+        """
+        return cls(base=data["base"], solvent=data["solvent"], value=data["value"], unit=data["unit"])
+
+    def tolist(self) -> List[float]:
+        """Convert value to a list."""
+        return self.value.tolist() if isinstance(self.value, np.ndarray) else [self.value]
 
 @attr.s(auto_attribs=True)
 class Composition:
@@ -218,8 +274,30 @@ class Composition:
         return Composition(species=blended_species, name=f"{self.name}+{other.name}")
 
 
+    def to_dict(self) -> Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]:
+        """Convert to a dictionary representation."""
+        return {"name": self.name, "species": [s.to_dict() for s in self.species]}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]):
+        """Create a Composition instance from a dictionary representation.
+        
+        Parameters
+        ----------
+        data : Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]
+            Dictionary representation of a Composition instance.
+            Requires the keys `"name": str` and `"species": List[Dict[str, Union[str, float]]]`.
+        
+        Returns
+        -------
+        Composition
+            A Composition instance created from the dictionary representation.
+        """
+        return cls(species=[Species.from_dict(s) for s in data["species"]], name=data["name"])
+    
     def __str__(self):
         return f"Composition(name='{self.name}', species={self.species})"
+    
 
 @attr.s(auto_attribs=True)
 class Fluids:
@@ -360,3 +438,28 @@ class Fluids:
             new_compositions.append(Composition(species=blended_species, name=f"{base_comp.name}+{solvent_comp.name}"))
 
         return new_compositions
+
+    def to_dict(self):
+        """Dump the Fluids instance to a dictionary representation."""
+        return {"compositions": [c.to_dict() for c in self.compositions]}
+    
+    @classmethod
+    def from_dict(cls, data):
+        """Create a Fluids instance from a dictionary representation.
+        
+        Parameters
+        ----------
+        data : dict
+            Dictionary representation of a Fluids instance.
+            Requires the key `"compositions": List[Composition]`.
+        
+        Returns
+        -------
+        Fluids
+            A Fluids instance created from the dictionary representation.
+        """
+        return cls(compositions=[Composition.from_dict(c) for c in data["compositions"]])
+    
+    def __str__(self):
+        """String representation of the Fluids instance."""
+        return f"Fluids(compositions={self.compositions})"
