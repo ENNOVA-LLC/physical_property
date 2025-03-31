@@ -3,9 +3,9 @@
 Contains classes for specialty physical properties (e.g., gas-oil ratio).
 """
 from .gas_oil_ratio import GasOilRatio
-from .composition import Species, Composition, Fluids, SolventBlendSpec
+from .composition import Species, ChemicalComposition, Fluids, SolventBlendSpec
 
 __all__ = [
     "GasOilRatio",
-    "Species", "Composition", "Fluids", "SolventBlendSpec"
+    "Species", "ChemicalComposition", "Fluids", "SolventBlendSpec"
 ]

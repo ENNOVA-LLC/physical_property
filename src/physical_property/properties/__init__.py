@@ -8,7 +8,7 @@ from .dimensionless import (
     PrandtlNumber, NusseltNumber, SchmidtNumber, MachNumber
 )
 from .thermodynamic import (
-    Mass, Moles, CompositionArray, MolarMass, Temperature, Pressure, Density, Volume, SolubilityParameter
+    Mass, Moles, Composition, MolarMass, Temperature, Pressure, Density, Volume, SolubilityParameter
 )
 from .transport import (
     Flow, SurfaceTension,
@@ -17,7 +17,7 @@ from .transport import (
 )
 from .specialty import (
     GasOilRatio, 
-    Species, Composition, Fluids, SolventBlendSpec
+    Species, ChemicalComposition, Fluids, SolventBlendSpec
 )
 
 __all__ = [
@@ -26,7 +26,7 @@ __all__ = [
     # dimensionless
     'ReynoldsNumber', 'PecletNumber', 'FroudeNumber', 'DamkohlerNumber', 'PrandtlNumber', 'NusseltNumber', 'SchmidtNumber', 'MachNumber',
     # thermodynamic
-    'Mass', 'Moles', 'CompositionArray', 'MolarMass', 
+    'Mass', 'Moles', 'Composition', 'MolarMass', 
     'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
     # transport
     'Flow', 'SurfaceTension',
@@ -34,5 +34,5 @@ __all__ = [
     'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
     # specialty
     'GasOilRatio', 
-    'Species', 'Composition', 'Fluids', 'SolventBlendSpec',
+    'Species', 'ChemicalComposition', 'Fluids', 'SolventBlendSpec',
 ]

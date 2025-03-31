@@ -38,7 +38,7 @@ class Moles(PhysicalProperty):
         return Mass(name=self.name, value=self.value * MW, unit="kg", doc=self.doc)
 
 @attr.s(auto_attribs=True)
-class CompositionArray(PhysicalProperty):
+class Composition(PhysicalProperty):
     """Composition property (e.g., mole percent, potentially requiring MW for mass-mole conversion)."""
     def convert(self, to_unit: str, MW=None) -> np.ndarray:
         if self.unit == to_unit:

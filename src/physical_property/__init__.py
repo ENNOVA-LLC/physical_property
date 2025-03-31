@@ -7,10 +7,10 @@ from .base import PhysicalProperty
 from .properties import (
     Time, Length, Rate, Area, Angle, Velocity,
     ReynoldsNumber, PecletNumber, FroudeNumber, DamkohlerNumber, PrandtlNumber, NusseltNumber, SchmidtNumber, MachNumber,
-    Mass, Moles, CompositionArray, MolarMass, Temperature, Pressure, Density, Volume, SolubilityParameter,
+    Mass, Moles, Composition, MolarMass, Temperature, Pressure, Density, Volume, SolubilityParameter,
     Flow, Viscosity, ShearStress, PressureGradient, SurfaceTension, 
     MassFlux, Diffusivity, Dispersion, ThermalConductivity, HeatTransferCoefficient, HeatCapacity,
-    GasOilRatio, Species, Composition, Fluids, SolventBlendSpec
+    GasOilRatio, Species, ChemicalComposition, Fluids, SolventBlendSpec
 )
 from .xy_data import XYData
 from .units.units import UnitConverter, get_unit_set
@@ -20,9 +20,9 @@ __all__ = [
     # properties
     'Time', 'Length', 'Rate', 'Area', 'Angle', 'Velocity',
     'ReynoldsNumber', 'PecletNumber', 'FroudeNumber', 'DamkohlerNumber', 'PrandtlNumber', 'NusseltNumber', 'SchmidtNumber', 'MachNumber',
-    'Mass', 'Moles', 'CompositionArray', 'MolarMass', 'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
+    'Mass', 'Moles', 'Composition', 'MolarMass', 'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
     'Flow', 'Viscosity', 'ShearStress', 'PressureGradient', 'SurfaceTension', 'MassFlux', 'Diffusivity', 'Dispersion', 'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
-    'GasOilRatio', 'Species', 'Composition', 'Fluids', 'SolventBlendSpec',
+    'GasOilRatio', 'Species', 'ChemicalComposition', 'Fluids', 'SolventBlendSpec',
     # xy-data
     'XYData',
     # units

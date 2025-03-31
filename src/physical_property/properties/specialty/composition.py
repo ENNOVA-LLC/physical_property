@@ -198,7 +198,7 @@ class SolventBlendSpec:
         return self.value.tolist() if isinstance(self.value, np.ndarray) else list(self.value)
 
 @attr.s(auto_attribs=True)
-class Composition:
+class ChemicalComposition:
     """Represents a mixture of chemical species.
 
     Attributes
@@ -212,7 +212,7 @@ class Composition:
     --------
     >>> water = Species(name="H2O", amount=10, unit="kg", molar_mass=18.015)
     >>> co2 = Species(name="CO2", amount=5, unit="kg", molar_mass=44.01)
-    >>> comp = Composition(species=[water, co2], name="Mixture")
+    >>> comp = ChemicalComposition(species=[water, co2], name="Mixture")
     >>> print(comp.total_amount("kg"))
     15.0
     >>> comp_moles = comp.convert("mol")
@@ -227,10 +227,10 @@ class Composition:
         if not self.species:
             raise ValueError("Composition must contain at least one species.")
 
-    def convert(self, to_unit: str) -> "Composition":
+    def convert(self, to_unit: str) -> "ChemicalComposition":
         """Convert all species to the specified unit."""
         converted_species = [s.to(to_unit) for s in self.species]
-        return Composition(species=converted_species, name=self.name)
+        return ChemicalComposition(species=converted_species, name=self.name)
 
     def total_amount(self, unit: str = None) -> float:
         """Return the total amount in the specified unit (or first species' unit if None)."""
@@ -238,7 +238,7 @@ class Composition:
         converted = self.convert(target_unit)
         return sum(s.amount for s in converted.species)
 
-    def blend(self, other: "Composition", proportion: float, unit: str) -> "Composition":
+    def blend(self, other: "ChemicalComposition", proportion: float, unit: str) -> "ChemicalComposition":
         """Blend with another Composition based on a proportion in the specified unit.
 
         Combines all species from both compositions, summing amounts for overlapping species.
@@ -254,10 +254,10 @@ class Composition:
 
         Returns
         -------
-        Composition
+        ChemicalComposition
             The blended composition containing all species from both inputs.
         """
-        if not isinstance(other, Composition):
+        if not isinstance(other, ChemicalComposition):
             raise TypeError("Can only blend with another Composition.")
         if not 0 <= proportion <= 1:
             raise ValueError("Proportion must be between 0 and 1.")
@@ -279,7 +279,7 @@ class Composition:
             Species(name=name, amount=value, unit=unit, molar_mass=molar_mass_dict[name])
             for name, value in species_dict.items()
         ]
-        return Composition(species=blended_species, name=f"{self.name}+{other.name}")
+        return ChemicalComposition(species=blended_species, name=f"{self.name}+{other.name}")
 
 
     def to_dict(self) -> Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]:
@@ -288,7 +288,7 @@ class Composition:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]):
-        """Create a Composition instance from a dictionary representation.
+        """Create a `ChemicalComposition` instance from a dictionary representation.
         
         Parameters
         ----------
@@ -304,7 +304,7 @@ class Composition:
         return cls(species=[Species.from_dict(s) for s in data["species"]], name=data["name"])
     
     def __str__(self):
-        """Return a string representation of the `Composition` instance."""
+        """Return a string representation of the instance."""
         return f"Composition(name='{self.name}', species={self.species})"
     
 
@@ -329,11 +329,11 @@ class Fluids:
     >>> print(f"{blended.total_amount('mol'):.1f} mol")
     227.8 mol
     """
-    compositions: List[Composition] = attr.ib(default=attr.Factory(list))
+    compositions: List[ChemicalComposition] = attr.ib(default=attr.Factory(list))
 
-    def add(self, composition: Composition) -> None:
+    def add(self, composition: ChemicalComposition) -> None:
         """Add a Composition instance to the Fluids instance."""
-        if not isinstance(composition, Composition):
+        if not isinstance(composition, ChemicalComposition):
             raise TypeError("Can only add Composition instances.")
         self.compositions.append(composition)
 
@@ -342,7 +342,7 @@ class Fluids:
         converted_comps = [comp.convert(to_unit) for comp in self.compositions]
         return Fluids(compositions=converted_comps)
 
-    def blend(self, indices: List[int], proportions: List[float], unit: str) -> Composition:
+    def blend(self, indices: List[int], proportions: List[float], unit: str) -> ChemicalComposition:
         """Blend specific compositions in specified proportions using the given unit."""
         if len(indices) != len(proportions):
             raise ValueError("Number of indices must match number of proportions.")
@@ -363,7 +363,7 @@ class Fluids:
 
         return result
 
-    def from_spec(self, spec: SolventBlendSpec, exclude_zero_comps: bool = False) -> List[Composition]:
+    def from_spec(self, spec: SolventBlendSpec, exclude_zero_comps: bool = False) -> List[ChemicalComposition]:
         """Construct new compositions from a SolventBlendSpec.
 
         The spec's value denotes the solvent amount in the final blend, with the base amount
@@ -444,7 +444,7 @@ class Fluids:
                 Species(name=name, amount=amount, unit=unit, molar_mass=molar_mass_dict[name])
                 for name, amount in species_dict.items() if amount > amount_tol  # Exclude zero amounts
             ]
-            new_compositions.append(Composition(species=blended_species, name=f"{base_comp.name}+{solvent_comp.name}"))
+            new_compositions.append(ChemicalComposition(species=blended_species, name=f"{base_comp.name}+{solvent_comp.name}"))
 
         return new_compositions
 
@@ -467,7 +467,7 @@ class Fluids:
         Fluids
             A Fluids instance created from the dictionary representation.
         """
-        return cls(compositions=[Composition.from_dict(c) for c in data["compositions"]])
+        return cls(compositions=[ChemicalComposition.from_dict(c) for c in data["compositions"]])
     
     def __str__(self):
         """String representation of the `Fluids` instance."""
