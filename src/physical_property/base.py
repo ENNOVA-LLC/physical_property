@@ -98,9 +98,9 @@ class PhysicalProperty:
         """
         if self.unit:
             prop_type = self._get_property_type()
-            allowable = self.converter.get_allowable_units(prop_type)
-            if self.unit.lower() not in [u.lower() for u in allowable]:
-                raise ValueError(f"Unit '{self.unit}' not supported for {prop_type}. Allowable: {allowable}")
+            # allowable = self.converter.get_allowable_units(prop_type)
+            # if self.unit.lower() not in [u.lower() for u in allowable]:
+            #     raise ValueError(f"Unit '{self.unit}' not supported for {prop_type}. Allowable: {allowable}")
     
         # If no bounds are provided and DEFAULT_BOUNDS exists, convert them.
         if self.bounds is None and hasattr(self.__class__, "DEFAULT_BOUNDS"):
@@ -377,15 +377,40 @@ class PhysicalProperty:
             An instance of the appropriate subclass.
         """
         unit_key = unit.lower() if unit else None
-        prop_type = cls.convert.get_unit_type(unit_key)
+        prop_type = DEFAULT_CONVERTER.get_unit_type(unit_key)
         if not prop_type:
             logger.warning(f"Unknown unit '{unit}', defaulting to generic PhysicalProperty.")
             return cls(name=name, value=value, unit=unit, doc=doc)
-        class_name = 'Flow' if 'flow' in prop_type else prop_type.capitalize()
+
+        # Define mapping of property types to their corresponding class names
+        class_mapping = {
+            "flow": "Flow",
+            "time": "Time",
+            "temperature": "Temperature",
+            "pressure": "Pressure",
+            # Add more specific mappings here as necessary
+        }
+
+        # Capitalize prop_type for standard matching
+        class_name = class_mapping.get(prop_type.lower(), prop_type.capitalize())
+
+        # Get class from globals or a predefined class registry
         prop_class = globals().get(class_name)
+
+        # If the class is still None, try importing it explicitly
+        if not prop_class:
+            try:
+                # Explicitly import the class if not found in globals()
+                module_name = f".{class_name.lower()}"
+                prop_class = __import__(module_name, fromlist=[class_name])
+                prop_class = getattr(prop_class, class_name, None)
+            except ImportError as e:
+                logger.warning(f"Failed to import class '{class_name}' due to {e}, using PhysicalProperty.")
+
         if not prop_class or not issubclass(prop_class, PhysicalProperty):
             logger.warning(f"Class '{class_name}' not found or not a PhysicalProperty subclass, using PhysicalProperty.")
             return cls(name=name, value=value, unit=unit, doc=doc)
+
         return prop_class(name=name, value=value, unit=unit, doc=doc)
     # endregion
 
