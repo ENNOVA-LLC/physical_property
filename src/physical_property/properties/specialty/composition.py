@@ -10,7 +10,7 @@ Composition:
     Represents a mixture of chemical species.
 Fluids: 
     A collection of fluid compositions.
-SolventBlendSpec:
+SolventBlendSpec: 
     A specification for solvent blending, producing new compositions.
 """
 import attr
@@ -157,14 +157,21 @@ class SolventBlendSpec:
         return np.array(self.value if isinstance(self.value, (list, tuple)) else [self.value])
 
     def __str__(self):
+        """Return a string representation."""
         return f"SolventBlendSpec(base='{self.base}', solvent='{self.solvent}', value={self.value}, unit='{self.unit}')"
     
-    def to_dict(self) -> Dict[str, Union[str, float]]:
-        """Convert to a dictionary representation."""
+    def to_dict(self, tolist=True) -> Dict[str, Union[str, float]]:
+        """Convert to a dictionary representation.
+        
+        Parameters
+        ----------
+        tolist : bool, optional
+            Whether to convert the value array to a list.
+        """
         return {
             "base": self.base,
             "solvent": self.solvent,
-            "value": self.value,
+            "value": self.tolist() if tolist else self.value,
             "unit": self.unit
         }
     
@@ -187,7 +194,7 @@ class SolventBlendSpec:
 
     def tolist(self) -> List[float]:
         """Convert value to a list."""
-        return self.value.tolist() if isinstance(self.value, np.ndarray) else [self.value]
+        return self.value.tolist() if isinstance(self.value, np.ndarray) else list(self.value)
 
 @attr.s(auto_attribs=True)
 class Composition:
@@ -442,7 +449,7 @@ class Fluids:
     def to_dict(self):
         """Dump the Fluids instance to a dictionary representation."""
         return {"compositions": [c.to_dict() for c in self.compositions]}
-    
+
     @classmethod
     def from_dict(cls, data):
         """Create a Fluids instance from a dictionary representation.
