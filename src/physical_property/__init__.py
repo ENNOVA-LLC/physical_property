@@ -13,7 +13,7 @@ from .properties import (
     GasOilRatio, Species, Composition, Fluids, SolventBlendSpec
 )
 from .xy_data import XYData
-from .units.units import UnitConverter
+from .units.units import UnitConverter, get_unit_set
 
 __all__ = [
     'PhysicalProperty',
@@ -26,5 +26,5 @@ __all__ = [
     # xy-data
     'XYData',
     # units
-    'UnitConverter',
+    'UnitConverter', 'get_unit_set',
 ]

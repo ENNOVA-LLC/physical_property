@@ -32,7 +32,7 @@ class XYData:
     x_data: PhysicalProperty = field()
     properties_data: Dict[str, List[PhysicalProperty]] = field(factory=dict)
 
-    def __attrs_post_init__(self, time_cuts, x_data):
+    def __init__(self, time_cuts, x_data):
         """
         Parameters
         ----------
@@ -54,7 +54,7 @@ class XYData:
         object.__setattr__(self, "properties_data", {})
 
     # region DATA MANAGEMENT
-    def add_data(self, property_name, y_data):
+    def add_data(self, property_name: str, y_data: PhysicalProperty) -> None:
         """
         Add data for a specific property at a specific time cut.
 
