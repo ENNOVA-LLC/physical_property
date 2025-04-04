@@ -1,9 +1,9 @@
 """ `xy_data.xy_data`
 
-For storage and visualization of (x,y) data at different series values (often time cuts).
+For storage and visualization of (x,y) data across multiple series (e.g., time cuts or other indices).
 """
 from attrs import define, field
-from typing import Dict, List
+from typing import Dict, List, Optional, Union
 import numpy as np
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
@@ -17,87 +17,144 @@ logger.add("logs/xy_data.log", rotation="10 MB", level="DEBUG")
 @define
 class XYData:
     """
-    Class to store and visualize (x,y) data at different series values.
+    Class to store and visualize (x,y) data across multiple series.
 
     Attributes
     ----------
-    time_cuts : Time
-        A list of values at which data has been recorded.
-    x_data : PhysicalProperty or Length
+    x_data : PhysicalProperty
         The x values (e.g., location in the pipe) with name, unit, and value.
     properties_data : Dict[str, List[PhysicalProperty]]
-        Keys are property names and values are lists of PhysicalProperty instances representing the y data at different time cuts.
+        Keys are property names and values are lists of PhysicalProperty instances representing the y data for each series.
+    series_index : PhysicalProperty, optional
+        Identifiers for each series (e.g., time cuts, sample numbers). If None, defaults to numeric indices (series-0, series-1, ...).
     """
-    time_cuts: Time = field()
     x_data: PhysicalProperty = field()
     properties_data: Dict[str, List[PhysicalProperty]] = field(factory=dict)
+    series_index: Optional[PhysicalProperty] = field(default=None)
 
-    def __init__(self, time_cuts, x_data):
+    def __init__(self, x_data, series_index=None):
         """
         Parameters
         ----------
-        time_cuts : list, numpy array, or Time
-            A list of time cuts at which data has been recorded. Assumed to be in seconds if not a Time instance.
         x_data : list, numpy array, or PhysicalProperty
             The x values (e.g., location in the pipe).
+        series_index : list, numpy array, or PhysicalProperty, optional
+            Identifiers for each series (e.g., time cuts). If None, defaults to numeric indices when y_data is added.
         """
         logger.info("Initializing XYData class.")
-        # Convert time_cuts to Time instance if not already
-        if not isinstance(time_cuts, PhysicalProperty):
-            time_cuts = Time(name="time", unit="s", value=time_cuts)    # Assuming time in seconds
         # Convert x_data to PhysicalProperty if not already
         if not isinstance(x_data, PhysicalProperty):
-            x_data = Length(name="length", unit=None, value=x_data)     # Assuming Length for spatial data
+            x_data = Length(name="length", unit=None, value=x_data)  # Assuming Length for spatial data
         
-        object.__setattr__(self, "time_cuts", time_cuts)
+        # Convert series_index to PhysicalProperty if provided and not already a PhysicalProperty
+        if series_index is not None and not isinstance(series_index, PhysicalProperty):
+            series_index = PhysicalProperty(name="series", unit=None, value=series_index)
+
+        object.__setattr__(self, "series_index", series_index)
         object.__setattr__(self, "x_data", x_data)
         object.__setattr__(self, "properties_data", {})
 
     # region DATA MANAGEMENT
-    def add_data(self, property_name: str, y_data: PhysicalProperty) -> None:
+    def add_y_data(self, y_data: Union[PhysicalProperty, np.ndarray, list], y_name: str = None) -> None:
         """
-        Add data for a specific property at a specific time cut.
+        Add data for a specific property.
 
         Parameters
         ----------
-        property_name : str
-            The name of the property (e.g., density, viscosity).
         y_data : list, numpy array, or PhysicalProperty
             The y values (e.g., value of the property at corresponding x values).
+        y_name : str, optional
+            The name of the property. If not provided, it will be inferred from the y_data or default to "property".
         """
         if not isinstance(y_data, PhysicalProperty):
-            y_data = PhysicalProperty(name=property_name, unit=None, value=np.asarray(y_data))
+            y_name = y_name if y_name is not None else "property"
+            if y_name in self.properties_data:
+                y_name = f"{y_name}_{len(self.properties_data[y_name])}"
+            y_data = PhysicalProperty(name=y_name, unit=None, value=np.asarray(y_data))
+        else:
+            y_name = y_data.name
         
         if len(y_data.value) != len(self.x_data.value):
-            raise ValueError(f"Inconsistent data dimensions for {property_name}.")
+            raise ValueError(f"Inconsistent data dimensions for {y_name}: x_data has {len(self.x_data.value)} points, y_data has {len(y_data.value)} points")
         
-        if property_name not in self.properties_data:
-            self.properties_data[property_name] = []
+        if y_name not in self.properties_data:
+            self.properties_data[y_name] = []
         
-        self.properties_data[property_name].append(y_data)
+        self.properties_data[y_name].append(y_data)
+        
+        # Update series_index if not provided
+        if self.series_index is None:
+            num_series = len(self.properties_data[y_name])
+            object.__setattr__(self, "series_index", PhysicalProperty(
+                name="series", 
+                unit=None, 
+                value=np.arange(num_series)
+            ))
+        elif len(self.properties_data[y_name]) > len(self.series_index.value):
+            logger.warning(f"Number of y_data entries ({len(self.properties_data[y_name])}) exceeds series_index ({len(self.series_index.value)}) for {y_name}")
+
+    def add_series_data(self, series_index_val: Union[float, int, str], y_data_dict: Dict[str, Union[PhysicalProperty, np.ndarray, list]]) -> None:
+        """
+        Add a collection of y(x) data for a new series index value.
+
+        Parameters
+        ----------
+        series_index_val : float, int, or str
+            The new series index value (e.g., a time cut like 3.0 or "sample_1").
+        y_data_dict : dict
+            A dictionary mapping property names to their y values (e.g., {"pressure": [1, 2, 3], "temp": [300, 310, 320]}).
+            Values can be lists, numpy arrays, or PhysicalProperty instances.
+        """
+        logger.info(f"Adding series data for series_index_val={series_index_val}")
+        
+        # Update series_index
+        if self.series_index is None:
+            object.__setattr__(self, "series_index", PhysicalProperty(
+                name="series", 
+                unit=None, 
+                value=[series_index_val]
+            ))
+        else:
+            new_series = np.append(self.series_index.value, series_index_val)
+            object.__setattr__(self, "series_index", PhysicalProperty(
+                name=self.series_index.name, 
+                unit=self.series_index.unit, 
+                value=new_series
+            ))
+
+        # Add each property's y_data
+        for y_name, y_data in y_data_dict.items():
+            if not isinstance(y_data, PhysicalProperty):
+                y_data = PhysicalProperty(name=y_name, unit=None, value=np.asarray(y_data))
+            if len(y_data.value) != len(self.x_data.value):
+                raise ValueError(f"Inconsistent data dimensions for {y_name}: x_data has {len(self.x_data.value)} points, y_data has {len(y_data.value)} points")
+            if y_name not in self.properties_data:
+                self.properties_data[y_name] = []
+            self.properties_data[y_name].append(y_data)
 
     # region PLOTTING UTILITIES
-    def plot(self, properties=None, downsample_factor=1, max_plots_per_figure=8, time_unit="day") -> list:
+    def plot(self, properties=None, downsample_factor=1, max_plots_per_figure=10) -> List[go.Figure]:
         """
-        Generate (x, y) plots for the specified properties over all recorded time cuts using Plotly.
+        Generate (x, y) plots for the specified properties, with each plot showing all series.
 
         Parameters
         ----------
         properties : list of str, optional
             The list of property names to plot. If None, all properties are plotted.
         downsample_factor : int, optional
-            Factor to downsample the data. Default is 1 (not applied).
+            Factor to downsample the x and y data (series_index remains unchanged). Default is 1 (not applied).
         max_plots_per_figure : int, optional
-            Maximum number of plots per figure. Default is 8.
-        time_unit : str, optional
-            The unit for displaying time in the plot legend. Default is 'day'.
+            Maximum number of plots per figure. Default is 10.
 
         Returns
         -------
         list of go.Figure
             A list of figures.
         """
-        logger.info("Plot data in XYData class.")
+        logger.info("Plotting data in XYData class.")
+        if not self.properties_data:
+            raise ValueError("No y-data available to plot.")
+        
         if properties is None:
             properties = list(self.properties_data.keys())
 
@@ -107,35 +164,33 @@ class XYData:
         figs = []
         for i in range(0, len(properties), max_plots_per_figure):
             figure_properties = properties[i:i + max_plots_per_figure]
-            fig = self._create_subplot_figure(figure_properties, time_unit)
+            fig = self._create_subplot_figure(figure_properties)
             figs.append(fig)
 
         return figs
 
     def _downsample_data(self, factor):
         """
-        Downsample the x_data and y_data by the given factor.
+        Downsample the x_data and y_data by the given factor (series_index is not downsampled).
 
         Parameters
         ----------
         factor : int
             The downsample factor.
         """
-        self.x_data.value = self.x_data.value[::factor]
+        self.x_data.update_value(self.x_data.value[::factor])
         for prop in self.properties_data:
             for y_data in self.properties_data[prop]:
-                y_data.value = y_data.value[::factor]
+                y_data.update_value(y_data.value[::factor])
 
-    def _create_subplot_figure(self, properties, time_unit) -> go.Figure:
+    def _create_subplot_figure(self, properties: List[str]) -> go.Figure:
         """
-        Private method to create a figure with subplots for multiple properties.
+        Private method to create a figure with subplots for multiple properties, each showing all series.
 
         Parameters
         ----------
-        properties : list
+        properties : List[str]
             The properties to be plotted.
-        time_unit : str
-            The unit for displaying time in the plot legend.
         """
         logger.info("Creating subplots.")
         colors = [
@@ -147,6 +202,8 @@ class XYData:
         fig = make_subplots(rows=int(rows), cols=2, shared_xaxes=False)
 
         x_label = f"{self.x_data.name} ({self.x_data.unit})" if self.x_data.unit else self.x_data.name
+        y_title = "Y" # ', '.join(properties)
+        title_text = f"<b>{y_title} v. {x_label}</b>"
 
         for idx, prop in enumerate(properties):
             if prop not in self.properties_data:
@@ -156,28 +213,33 @@ class XYData:
             row = (idx // 2) + 1
             col = (idx % 2) + 1
 
-            # Plot each time cut for this property
+            # Plot each series for this property
             y_min, y_max = float("inf"), float("-inf")
-            for i, (time_cut, y_data) in enumerate(zip(self.time_cuts.value, self.properties_data[prop])):
+            y_data_list = self.properties_data[prop]
+            
+            for i, y_data in enumerate(y_data_list):
                 y_min = min(y_min, np.min(y_data.value))
                 y_max = max(y_max, np.max(y_data.value))
                 y_label = f"{y_data.name} ({y_data.unit})" if y_data.unit else y_data.name
                 
-                # Convert time to the specified unit for display
-                if time_unit == "day":
-                    time_display = time_cut / 86400
-                    unit_str = "day"
-                elif time_unit == "hour":
-                    time_display = time_cut / 3600
-                    unit_str = "hour"
-                else:  # Default to seconds
-                    time_display = time_cut
-                    unit_str = "s"
+                # Use series_index for legend if available, otherwise use index
+                if self.series_index is not None and i < len(self.series_index.value):
+                    series_val = self.series_index.value[i]
+                    series_unit = f" ({self.series_index.unit})" if self.series_index.unit else ""
+                    name = f"{self.series_index.name}={series_val:.2f}{series_unit}"
+                else:
+                    name = f"{y_data.name}_{i}"
+                
+                # Show legend only for the first subplot (idx == 0)
+                show_legend = (idx == 0)
                 
                 fig.add_trace(go.Scatter(
-                    x=self.x_data.value, y=y_data.value, mode="lines", name=f"t={time_display:.2f} {unit_str}",
+                    x=self.x_data.value, 
+                    y=y_data.value, 
+                    mode="lines", 
+                    name=name,
                     line=dict(color=colors[i % len(colors)]),
-                    showlegend=(idx == 0)
+                    showlegend=show_legend
                 ), row=row, col=col)
 
             # Set y-axis limits
@@ -200,7 +262,7 @@ class XYData:
             )
 
         fig.update_layout(
-            title={"text": "<b>Y(x) at each interval</b>", "font": {"family": "Arial", "size": 40}},
+            title={"text": title_text, "font": {"family": "Arial", "size": 40}},
             height=400 * rows,
             width=1400,
             margin=dict(l=50, r=50, t=100, b=100),
@@ -210,5 +272,48 @@ class XYData:
         return fig
     # endregion
 
+    # region: Magic Methods
+    def __str__(self):
+        """
+        Return a string representation of the XYData instance, including the x_data, properties_data, and series_index.
+
+        Returns
+        -------
+        str
+            A string representation of the XYData instance.
+        """
+        series_str = f"series_index={self.series_index.value}" if self.series_index is not None else "series_index=None"
+        x_str = f"x_data={self.x_data.name} ({len(self.x_data.value)} points, unit={self.x_data.unit})"
+        props_str = ", ".join([f"{key} ({len(val)} series)" for key, val in self.properties_data.items()])
+        return f"XYData(\n  {series_str}, \n  {x_str}, \n  properties=[{props_str}])"
+    # endregion
+
 if __name__ == "__main__":
     logger.info("Running xy_data module...")
+    # Example: Single series
+    x = np.linspace(0, 10, 100)
+    data = XYData(x_data=Length(name="Pipe Length", unit="m", value=x))
+    data.add_series_data(series_index_val=0, y_data_dict={
+        "pressure": np.sin(x),
+        "temperature": np.cos(x)
+    })
+    figs = data.plot()
+    figs[0].show()
+
+    # Example: Multiple series
+    data = XYData(x_data=Length(name="Pipe Length", unit="m", value=x))
+    data.add_series_data(series_index_val=0, y_data_dict={
+        "pressure": np.sin(x),
+        "temperature": np.cos(x)
+    })
+    data.add_series_data(series_index_val=1, y_data_dict={
+        "pressure": np.sin(x + 1),
+        "temperature": np.cos(x + 1)
+    })
+    data.add_series_data(series_index_val=2, y_data_dict={
+        "pressure": np.sin(x + 2),
+        "temperature": np.cos(x + 2)
+    })
+    figs = data.plot()
+    figs[0].show()
+    

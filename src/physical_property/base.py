@@ -688,9 +688,11 @@ class PhysicalProperty:
     # endregion
     
     # region PLOT
-    def plot(self, x: Any, y: Any = None, title: str = None,
-             xaxis_title: str = None, yaxis_title: str = None,
-             mode: str = "lines+markers", **kwargs) -> go.Figure:
+    def plot(
+        self, x: Any, y: Any = None, title: str = None,
+        xaxis_title: str = None, yaxis_title: str = None,
+        mode: str = "lines+markers", **kwargs
+    ) -> go.Figure:
         """
         Plot data using Plotly.
 
@@ -700,6 +702,7 @@ class PhysicalProperty:
             The x-axis data. If a PhysicalProperty is supplied, its value is used.
         y : None, PhysicalProperty, or list of PhysicalProperty
             The y-axis data. If None, self.value is used.
+            If a PhysicalProperty, its value is used (1D or 2D).
             If a list is supplied, each PhysicalProperty in the list is plotted as a separate trace.
         title : str, optional
             Title for the plot. Defaults to "y vs x" if not provided.
@@ -711,48 +714,92 @@ class PhysicalProperty:
         mode : str, optional
             Plotly mode for each trace (default: "lines+markers").
         **kwargs
-            Additional keyword arguments passed to fig.update_layout.
+            Additional keyword arguments passed to `fig.update_layout`.
 
         Returns
         -------
         go.Figure
             A Plotly figure with the plotted data.
+        
+        Notes
+        -----
+        - If the y-value (self.value or y.value) is 2D with shape (npoints, ncols), each column
+        is plotted as a separate series.
+        - The x-value must always be 1D with shape (npoints,).
         """
+        # Handle x-axis data
         if isinstance(x, PhysicalProperty):
             x_vals = x.value
             if xaxis_title is None:
                 xaxis_title = f"{x.name} ({x.unit})"
         else:
-            x_vals = x
+            x_vals = np.asarray(x, dtype=float)
             if xaxis_title is None:
                 xaxis_title = "x"
+        
+        if x_vals.ndim != 1:
+            raise ValueError(f"x must be 1D, got shape {x_vals.shape}")
+
+        # Handle y-axis data (store traces in a list)
         traces = []
-        y_vals = self.value
+
+        def add_traces(prop: 'PhysicalProperty', is_self: bool = False) -> None:
+            """Helper function to add traces for a `PhysicalProperty`."""
+            y_vals = prop.value
+            if y_vals.ndim == 1:
+                # 1D case: single trace
+                if len(y_vals) != len(x_vals):
+                    raise ValueError(f"Length mismatch: x has {len(x_vals)} points, y has {len(y_vals)} points")
+                traces.append(go.Scatter(x=x_vals, y=y_vals, mode=mode, name=f"{prop.name} ({prop.unit})"))
+            elif y_vals.ndim == 2:
+                # 2D case: one trace per column
+                npoints, ncols = y_vals.shape
+                if npoints != len(x_vals):
+                    raise ValueError(f"Shape mismatch: x has {len(x_vals)} points, y has {npoints} points")
+                for i in range(ncols):
+                    traces.append(go.Scatter(
+                        x=x_vals, 
+                        y=y_vals[:, i], 
+                        mode=mode, 
+                        name=f"{prop.name}[{i}] ({prop.unit})"
+                    ))
+            else:
+                raise ValueError(f"y value must be 1D or 2D, got shape {y_vals.shape}")
+
+        # Always plot self.value
+        add_traces(self, is_self=True)
         if yaxis_title is None:
             yaxis_title = f"{self.name} ({self.unit})"
-        traces.append(go.Scatter(x=x_vals, y=y_vals, mode=mode, name=self.name))
-        if y is None:
-            pass
-        elif isinstance(y, list):
-            if yaxis_title is None:
-                yaxis_title = ", ".join([f"{prop.name} ({prop.unit})" for prop in y])
-            for prop in y:
-                if isinstance(prop, PhysicalProperty):
-                    traces.append(go.Scatter(x=x_vals, y=prop.value, mode=mode, name=f"{prop.name} ({prop.unit})"))
-                else:
-                    raise ValueError("All elements in y must be instances of PhysicalProperty")
-        elif isinstance(y, PhysicalProperty):
-            y_vals = y.value
-            if yaxis_title is None:
-                yaxis_title = f"{y.name} ({y.unit})"
-            traces.append(go.Scatter(x=x_vals, y=y_vals, mode=mode, name=f"{y.name}"))
-        else:
-            raise ValueError("y must be None, a PhysicalProperty, or a list of PhysicalProperty instances")
+
+        # Add additional traces from y if provided
+        if y is not None:
+            if isinstance(y, PhysicalProperty):
+                add_traces(y)
+                if yaxis_title == f"{self.name} ({self.unit})":
+                    yaxis_title += f", {y.name} ({y.unit})"
+            elif isinstance(y, list):
+                for prop in y:
+                    if not isinstance(prop, PhysicalProperty):
+                        raise ValueError("All elements in y must be instances of PhysicalProperty")
+                    add_traces(prop)
+                if yaxis_title == f"{self.name} ({self.unit})":
+                    yaxis_title += ", " + ", ".join([f"{prop.name} ({prop.unit})" for prop in y])
+            else:
+                raise ValueError("y must be None, a PhysicalProperty, or a list of PhysicalProperty instances")
+
+        # Set default title
         if title is None:
             title = f"{yaxis_title} vs {xaxis_title}"
+
+        # Create and configure the figure
         fig = go.Figure(data=traces)
-        fig.update_layout(title=title, xaxis_title=xaxis_title, yaxis_title=yaxis_title,
-                          showlegend=True, **kwargs)
+        fig.update_layout(
+            title=title,
+            xaxis_title=xaxis_title,
+            yaxis_title=yaxis_title,
+            showlegend=True,
+            **kwargs
+        )
         return fig
     # endregion
     
