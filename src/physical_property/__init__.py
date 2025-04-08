@@ -8,7 +8,7 @@ from .properties import (
     Time, Length, Rate, Area, Angle, Velocity,
     ReynoldsNumber, PecletNumber, FroudeNumber, DamkohlerNumber, PrandtlNumber, NusseltNumber, SchmidtNumber, MachNumber,
     Mass, Moles, Composition, MolarMass, Temperature, Pressure, Density, Volume, SolubilityParameter,
-    Flow, Viscosity, ShearStress, PressureGradient, SurfaceTension, 
+    Flow, Viscosity, ShearStress, PressureGradient, PressureDrop, SurfaceTension, 
     MassFlux, Diffusivity, Dispersion, ThermalConductivity, HeatTransferCoefficient, HeatCapacity,
     GasOilRatio, Species, ChemicalComposition, Fluids, SolventBlendSpec
 )
@@ -21,7 +21,8 @@ __all__ = [
     'Time', 'Length', 'Rate', 'Area', 'Angle', 'Velocity',
     'ReynoldsNumber', 'PecletNumber', 'FroudeNumber', 'DamkohlerNumber', 'PrandtlNumber', 'NusseltNumber', 'SchmidtNumber', 'MachNumber',
     'Mass', 'Moles', 'Composition', 'MolarMass', 'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
-    'Flow', 'Viscosity', 'ShearStress', 'PressureGradient', 'SurfaceTension', 'MassFlux', 'Diffusivity', 'Dispersion', 'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
+    'Flow', 'Viscosity', 'ShearStress', 'PressureGradient', 'PressureDrop', 
+    'SurfaceTension', 'MassFlux', 'Diffusivity', 'Dispersion', 'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
     'GasOilRatio', 'Species', 'ChemicalComposition', 'Fluids', 'SolventBlendSpec',
     # xy-data
     'XYData',

@@ -3,7 +3,7 @@
 Contains classes for transport properties (e.g., viscosity, shear stress).
 """
 import attr
-from typing import Optional, Tuple
+from typing import Optional
 import numpy as np
 
 from ..base import PhysicalProperty
