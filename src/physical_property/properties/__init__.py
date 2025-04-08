@@ -12,7 +12,7 @@ from .thermodynamic import (
 )
 from .transport import (
     Flow, SurfaceTension,
-    Viscosity, ShearStress, PressureGradient,
+    Viscosity, ShearStress, PressureGradient, PressureDrop,
     MassFlux, Diffusivity, Dispersion, ThermalConductivity, HeatTransferCoefficient, HeatCapacity
 )
 from .specialty import (
@@ -30,7 +30,8 @@ __all__ = [
     'Temperature', 'Pressure', 'Density', 'Volume', 'SolubilityParameter',
     # transport
     'Flow', 'SurfaceTension',
-    'Viscosity', 'ShearStress', 'PressureGradient', 'MassFlux', 'Diffusivity', 'Dispersion', 
+    'Viscosity', 'ShearStress', 'PressureGradient', 'PressureDrop', 
+    'MassFlux', 'Diffusivity', 'Dispersion', 
     'ThermalConductivity', 'HeatTransferCoefficient', 'HeatCapacity',
     # specialty
     'GasOilRatio', 
