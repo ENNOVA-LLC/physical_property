@@ -88,6 +88,16 @@ class PressureGradient(PhysicalProperty):
         return self.value * (pressure_factor / length_factor)
 
 @attr.s(auto_attribs=True)
+class PressureDrop(PhysicalProperty):
+    """Pressure drop property (base unit: bar)."""
+    def convert(self, to_unit: str) -> np.ndarray:
+        if self.unit == to_unit:
+            return self.value
+        
+        pressure_factor = self.converter.convert("pressure", 1, self.unit, to_unit)
+        return self.value * (pressure_factor)
+    
+@attr.s(auto_attribs=True)
 class SurfaceTension(PhysicalProperty):
     """SurfaceTension property (base unit: N/m)."""
     def convert(self, to_unit: str) -> np.ndarray:
