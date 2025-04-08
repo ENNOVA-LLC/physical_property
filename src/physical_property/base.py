@@ -689,7 +689,7 @@ class PhysicalProperty:
     
     # region PLOT
     def plot(
-        self, x: Any, y: Any = None, title: str = None,
+        self, x: Any = None, y: Any = None, title: str = None,
         xaxis_title: str = None, yaxis_title: str = None,
         mode: str = "lines+markers", **kwargs
     ) -> go.Figure:
@@ -732,6 +732,10 @@ class PhysicalProperty:
             x_vals = x.value
             if xaxis_title is None:
                 xaxis_title = f"{x.name} ({x.unit})"
+        elif x is None:
+            x_vals = np.arange(len(self.value))
+            if xaxis_title is None:
+                xaxis_title = "x-index"
         else:
             x_vals = np.asarray(x, dtype=float)
             if xaxis_title is None:
