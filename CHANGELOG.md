@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.4] - 2025-04-08
+
+### Added
+
+- New `PressureDrop` class.
+- `pytest` framework. Need to add more tests.
+
+### Changed
+
+- `XYData` class now more flexible in handling series data.
+- `PhysicalProperty.plot()` method can plot multiple series on the same plot, no longer requires `x` argument.
+
 ## [0.3.0] - 2025-04-04
 
 ### Changed

@@ -723,9 +723,9 @@ class PhysicalProperty:
         
         Notes
         -----
-        - If the y-value (self.value or y.value) is 2D with shape (npoints, ncols), each column
+        - If the y-value (`self.value` or `y.value`) is 2D with shape `(npoints, ncols)`, each column
         is plotted as a separate series.
-        - The x-value must always be 1D with shape (npoints,).
+        - The x-value must always be 1D with shape `(npoints, )`.
         """
         # Handle x-axis data
         if isinstance(x, PhysicalProperty):
@@ -784,16 +784,19 @@ class PhysicalProperty:
             elif isinstance(y, list):
                 for prop in y:
                     if not isinstance(prop, PhysicalProperty):
-                        raise ValueError("All elements in y must be instances of PhysicalProperty")
+                        raise ValueError("All elements in y must be instances of `PhysicalProperty`")
                     add_traces(prop)
                 if yaxis_title == f"{self.name} ({self.unit})":
                     yaxis_title += ", " + ", ".join([f"{prop.name} ({prop.unit})" for prop in y])
             else:
-                raise ValueError("y must be None, a PhysicalProperty, or a list of PhysicalProperty instances")
+                raise ValueError("y must be None, a `PhysicalProperty`, or `List[PhysicalProperty]`.")
 
         # Set default title
+        def remove_units(text: str) -> str:
+            return text.split(" (")[0]
+
         if title is None:
-            title = f"{yaxis_title} vs {xaxis_title}"
+            title = f"{remove_units(yaxis_title)} vs {remove_units(xaxis_title)}"
 
         # Create and configure the figure
         fig = go.Figure(data=traces)
