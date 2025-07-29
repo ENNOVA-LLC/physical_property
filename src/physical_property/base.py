@@ -24,6 +24,28 @@ def _to_snake_case(name: str) -> str:
     """Convert CamelCase to snake_case."""
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
 
+def _robust_value_handling(value, tolist=False):
+    # Robust value handling
+    val = value
+    if isinstance(val, np.ndarray):
+        if val.ndim == 0:      # Scalar ndarray
+            value = float(val)
+        elif tolist:
+            value = val.tolist()
+        else:
+            value = val
+    elif isinstance(val, (float, int)):
+        value = val
+    elif isinstance(val, list):
+        value = val
+    else:
+        # fallback
+        try:
+            value = float(val)
+        except Exception:
+            value = val
+    return value
+
 @attr.s(auto_attribs=True)
 class PhysicalProperty:
     """
@@ -609,7 +631,7 @@ class PhysicalProperty:
         return {
             "type": self.__class__.__name__,  # Add subclass name (e.g., "Pressure")
             "name": self.name,
-            "value": self.value.tolist() if tolist else self.value,
+            "value": _robust_value_handling(self.value, tolist),
             "unit": self.unit,
             "doc": self.doc,
             "bounds": self.bounds,
@@ -647,7 +669,14 @@ class PhysicalProperty:
         d_copy = d.copy()
         default_name = cls.__name__.lower()
         d_copy.setdefault("name", default_name)
-        d_copy["value"] = np.array(d_copy["value"], dtype=float)
+        v = d_copy["value"]
+        if isinstance(v, np.ndarray):
+            d_copy["value"] = v
+        elif isinstance(v, list):
+            d_copy["value"] = np.array(v, dtype=float)
+        else:
+            d_copy["value"] = np.array([v], dtype=float)
+        
         d_copy.setdefault("unit", None)
         d_copy.setdefault("doc", "")
 
@@ -691,7 +720,9 @@ class PhysicalProperty:
     def plot(
         self, x: Any = None, y: Any = None, title: str = None,
         xaxis_title: str = None, yaxis_title: str = None,
-        mode: str = "lines+markers", **kwargs
+        mode: Optional[str] = "lines+markers", 
+        save_to: Optional[str] = None,
+        **kwargs
     ) -> go.Figure:
         """
         Plot data using Plotly.
@@ -713,6 +744,8 @@ class PhysicalProperty:
             defaults to "name (unit)". If y is a list, the names are concatenated.
         mode : str, optional
             Plotly mode for each trace (default: "lines+markers").
+        save_to : str, optional
+            If provided, saves the plot to this path (supports .html, .png, .jpg, .svg, etc).
         **kwargs
             Additional keyword arguments passed to `fig.update_layout`.
 
@@ -807,6 +840,15 @@ class PhysicalProperty:
             showlegend=True,
             **kwargs
         )
+        
+        # Save the figure if a path is provided
+        if save_to:
+            ext = save_to.split('.')[-1].lower()
+            if ext == "html":
+                fig.write_html(save_to)
+            else:
+                fig.write_image(save_to)
+        
         return fig
     # endregion
     
