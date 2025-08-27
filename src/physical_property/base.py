@@ -11,11 +11,12 @@ from typing import List, Tuple, Union, Dict, Any, Optional
 import numpy as np
 import attr
 from plotly import graph_objects as go
-from loguru import logger
 
 from .units import UnitConverter  # Import the UnitConverter class
 
-logger.add("logs/property.log", rotation="10 MB")
+# Configure logging
+from .utils.logging import get_logger
+logger = get_logger(__name__)
 
 # Single default UnitConverter instance
 DEFAULT_CONVERTER = UnitConverter(unit_set="standard")
@@ -146,7 +147,7 @@ class PhysicalProperty:
             if upper is not None and np.any(self._value > upper):
                 raise ValueError(f"Initial value is above the upper bound: upper bound = {upper}; max value = {np.max(self._value)}")
         #stack = "".join(traceback.format_stack(limit=10))
-        logger.info(f"Created {self.__class__.__name__} instance") #: {self}\nStack trace:\n{stack}")
+        logger.debug(f"Created {self.__class__.__name__} instance") #: {self}\nStack trace:\n{stack}")
 
     # ---------------------------------------
     # region: Value handling
@@ -249,7 +250,7 @@ class PhysicalProperty:
             if upper is not None and np.any(new_val_array > upper):
                 raise ValueError(f"Updated value is above the upper bound: upper bound = {upper}; max value = {np.max(new_val_array)}.")
         object.__setattr__(self, '_value', new_val_array)
-        logger.info(f"Updated {self.__class__.__name__} instance: {self}")
+        logger.debug(f"Updated {self.__class__.__name__} instance: {self}")
 
     def append_value(self, new_value: Union[np.ndarray, float], prepend: bool = False) -> None:
         """
@@ -269,7 +270,7 @@ class PhysicalProperty:
         else:
             updated_value = np.append(current_value, new_val_array)
         self.update_value(updated_value)
-        logger.info(f"Appended {'to the front' if prepend else ''} {self.__class__.__name__} instance: {self}")
+        logger.debug(f"Appended {'to the front' if prepend else ''} {self.__class__.__name__} instance: {self}")
 
     def _convert_and_clip_new_value(self, new_value):
         """Utility to convert and clip a new value array."""

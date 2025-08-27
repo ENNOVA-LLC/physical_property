@@ -19,6 +19,10 @@ from typing import List, Dict, Union
 
 from physical_property.units import UnitConverter
 
+# Configure logging
+from ...utils.logging import get_logger
+logger = get_logger(__name__)
+
 # Default UnitConverter instance
 DEFAULT_CONVERTER = UnitConverter(unit_set="standard")
 
@@ -85,7 +89,7 @@ class Species:
         return f"Species(name='{self.name}', amount={self.amount}, unit='{self.unit}', molar_mass={self.molar_mass})"
     
     def to_dict(self) -> Dict[str, Union[str, float]]:
-        """Convert to a dictionary representation."""
+        """Dump instance to a dict."""
         return {
             "name": self.name,
             "amount": self.amount,
@@ -95,7 +99,7 @@ class Species:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Union[str, float]]):
-        """Create a Species instance from a dictionary representation.
+        """Load a `Species` instance from a dict.
         
         Parameters
         ----------
@@ -151,6 +155,7 @@ class SolventBlendSpec:
                 raise ValueError("value list must contain numbers.")
         elif not isinstance(self.value, (int, float)):
             raise ValueError("value must be a number or list of numbers.")
+        logger.debug(f"Created SolventBlendSpec: {self}")
 
     @property
     def value(self) -> np.ndarray:
@@ -161,8 +166,16 @@ class SolventBlendSpec:
         """Return a string representation."""
         return f"SolventBlendSpec(base='{self.base}', solvent='{self.solvent}', unit='{self.unit}', value={self.value})"
     
+    def __getattr__(self, attr):
+        # Allow access to base and solvent as attributes
+        if attr == "name":
+            return self.solvent
+        if attr == "base":
+            return self.base
+        raise AttributeError(attr)
+
     def to_dict(self, tolist=True) -> Dict[str, Union[str, float]]:
-        """Convert to a dictionary representation.
+        """Dump instance to a dict.
         
         Parameters
         ----------
@@ -178,7 +191,7 @@ class SolventBlendSpec:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Union[str, float]]):
-        """Create a SolventBlendSpec instance from a dictionary representation.
+        """Load a `SolventBlendSpec` instance from a dict.
         
         Parameters
         ----------
@@ -226,6 +239,7 @@ class ChemicalComposition:
         """Validate species."""
         if not self.species:
             raise ValueError("Composition must contain at least one species.")
+        logger.debug(f"Created ChemicalComposition: {self}")
 
     def convert(self, to_unit: str) -> "ChemicalComposition":
         """Convert all species to the specified unit."""
@@ -283,12 +297,12 @@ class ChemicalComposition:
 
 
     def to_dict(self) -> Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]:
-        """Convert to a dictionary representation."""
+        """Dump instance to a dict."""
         return {"name": self.name, "species": [s.to_dict() for s in self.species]}
 
     @classmethod
     def from_dict(cls, data: Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]):
-        """Create a `ChemicalComposition` instance from a dictionary representation.
+        """Load a `ChemicalComposition` instance from a dict.
         
         Parameters
         ----------
@@ -449,12 +463,12 @@ class Fluids:
         return new_compositions
 
     def to_dict(self):
-        """Dump the Fluids instance to a dictionary representation."""
+        """Dump instance to a dict."""
         return {"compositions": [c.to_dict() for c in self.compositions]}
 
     @classmethod
     def from_dict(cls, data):
-        """Create a Fluids instance from a dictionary representation.
+        """Load a `Fluids` instance from a dict.
         
         Parameters
         ----------

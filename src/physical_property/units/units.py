@@ -8,10 +8,13 @@ physico-chemical properties such as temperature, pressure, mass, etc.
 import attrs
 from typing import Dict, Tuple, List, Any, Union, ClassVar
 import numpy as np
-from loguru import logger
 
 from .unit_sets import get_unit_set
 from .unit_utils import UNITS_DICT, DEFAULT_UNIT_SET, ALT_KEYS
+
+# Configure logging
+from ..utils.logging import get_logger
+logger = get_logger(__name__)
 
 @attrs.define
 class UnitConverter:
@@ -36,7 +39,7 @@ class UnitConverter:
     ALT_KEYS: ClassVar[Dict[str, List[str]]] = ALT_KEYS
 
     def __attrs_post_init__(self):
-        logger.info(f"UnitConverter initialized with unit_set: {self.unit_set}")
+        logger.debug(f"UnitConverter initialized with unit_set: {self.unit_set}")
         self.unit_set = self.get_unit_set(self.unit_set)
     
     # --------------------------------------

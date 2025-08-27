@@ -2,8 +2,11 @@
 
 For the unit conversion functionality in `__str__` methods.
 """
-#from ADEPT.utils.units import convert_x
-from loguru import logger
+#from ..utils.units import convert_x
+
+# Configure logging
+from ..utils.logging import get_logger
+logger = get_logger(__name__)
 
 unit_sets = {
     'standard': {

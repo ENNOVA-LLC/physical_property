@@ -7,12 +7,13 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
-from loguru import logger
 
 from ..base import PhysicalProperty
 from ..properties import Time, Length
 
-logger.add("logs/xy_data.log", rotation="10 MB", level="DEBUG")
+# Configure logging
+from ..utils.logging import get_logger
+logger = get_logger(__name__)
 
 @define
 class XYData:
@@ -41,7 +42,7 @@ class XYData:
         series_index : list, numpy array, or PhysicalProperty, optional
             Identifiers for each series (e.g., time cuts). If None, defaults to numeric indices when y_data is added.
         """
-        logger.info("Initializing XYData class.")
+        logger.debug("Initializing XYData class.")
         # Convert x_data to PhysicalProperty if not already
         if not isinstance(x_data, PhysicalProperty):
             x_data = Length(name="length", unit=None, value=x_data)  # Assuming Length for spatial data
@@ -105,7 +106,7 @@ class XYData:
             A dictionary mapping property names to their y values (e.g., {"pressure": [1, 2, 3], "temp": [300, 310, 320]}).
             Values can be lists, numpy arrays, or PhysicalProperty instances.
         """
-        logger.info(f"Adding series data for series_index_val={series_index_val}")
+        logger.debug(f"Adding series data for series_index_val={series_index_val}")
         
         # Update series_index
         if self.series_index is None:
@@ -151,7 +152,7 @@ class XYData:
         list of go.Figure
             A list of figures.
         """
-        logger.info("Plotting data in XYData class.")
+        logger.debug("Plotting data in XYData class.")
         if not self.properties_data:
             raise ValueError("No y-data available to plot.")
         
@@ -192,7 +193,7 @@ class XYData:
         properties : List[str]
             The properties to be plotted.
         """
-        logger.info("Creating subplots.")
+        logger.debug("Creating subplots.")
         colors = [
             "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A",
             "#19D3F3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"

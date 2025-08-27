@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "physical_property"
-version = "0.3.4"
+version = "0.3.5"
 description = "A package for managing physical properties with unit conversions"
 readme = "README.md"
 authors = [
@@ -23,9 +23,6 @@ dependencies = [
 [tool.setuptools]
 package-dir = { "" = "src" }
 packages = { find = { where = ["src"] } }
-
-[tool.setuptools.package-data]
-"physical_property" = ["*.logs"]  # Include log files if needed (e.g., from loguru)
 
 [project.optional-dependencies]
 test = [

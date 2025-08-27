@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.5] - 2025-08-27
+
+### Changed
+
+- Centralized logging.
+
 ## [0.3.4] - 2025-04-08
 
 ### Added
