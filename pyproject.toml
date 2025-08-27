@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "physical_property"
-version = "0.3.5"
+version = "0.3.6"
 description = "A package for managing physical properties with unit conversions"
 readme = "README.md"
 authors = [
