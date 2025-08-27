@@ -192,6 +192,7 @@ def setup_logging(
             diagnose=diagnose,
             enqueue=True,
         )
+    _base_logger.enable("physical_property")  # opt-in once the app configured sinks
 
     # Bridge stdlib logging -> Loguru, so third-party `logging` users flow into our sinks
     logging.basicConfig(handlers=[InterceptHandler()], level=0)

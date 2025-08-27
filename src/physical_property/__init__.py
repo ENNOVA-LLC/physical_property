@@ -3,6 +3,12 @@
 Top-level module for the physical_property package.
 Provides access to physical property classes and utilities.
 """
+# Quiet the package by default (apps can enable explicitly)
+from loguru import logger as _logger
+_logger.disable("physical_property")
+
+from importlib.metadata import PackageNotFoundError, version
+
 from .base import PhysicalProperty
 from .properties import (
     Time, Length, Rate, Area, Angle, Velocity,
@@ -14,6 +20,12 @@ from .properties import (
 )
 from .xy_data import XYData
 from .units.units import UnitConverter, get_unit_set
+
+# Get version number
+try:
+    __version__ = version("physical_property")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 __all__ = [
     'PhysicalProperty',
