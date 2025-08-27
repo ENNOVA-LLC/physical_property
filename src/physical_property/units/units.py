@@ -39,7 +39,7 @@ class UnitConverter:
     ALT_KEYS: ClassVar[Dict[str, List[str]]] = ALT_KEYS
 
     def __attrs_post_init__(self):
-        logger.debug(f"UnitConverter initialized with unit_set: {self.unit_set}")
+        logger.debug("UnitConverter initialized with unit_set: %s", self.unit_set)
         self.unit_set = self.get_unit_set(self.unit_set)
     
     # --------------------------------------

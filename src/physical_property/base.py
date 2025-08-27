@@ -147,7 +147,7 @@ class PhysicalProperty:
             if upper is not None and np.any(self._value > upper):
                 raise ValueError(f"Initial value is above the upper bound: upper bound = {upper}; max value = {np.max(self._value)}")
         #stack = "".join(traceback.format_stack(limit=10))
-        logger.debug(f"Created {self.__class__.__name__} instance") #: {self}\nStack trace:\n{stack}")
+        logger.debug("Created %s instance", self.__class__.__name__) #: {self}\nStack trace:\n{stack}")
 
     # ---------------------------------------
     # region: Value handling
@@ -250,7 +250,7 @@ class PhysicalProperty:
             if upper is not None and np.any(new_val_array > upper):
                 raise ValueError(f"Updated value is above the upper bound: upper bound = {upper}; max value = {np.max(new_val_array)}.")
         object.__setattr__(self, '_value', new_val_array)
-        logger.debug(f"Updated {self.__class__.__name__} instance: {self}")
+        logger.debug("Updated %s instance: %s", self.__class__.__name__, self)
 
     def append_value(self, new_value: Union[np.ndarray, float], prepend: bool = False) -> None:
         """
@@ -270,7 +270,6 @@ class PhysicalProperty:
         else:
             updated_value = np.append(current_value, new_val_array)
         self.update_value(updated_value)
-        logger.debug(f"Appended {'to the front' if prepend else ''} {self.__class__.__name__} instance: {self}")
 
     def _convert_and_clip_new_value(self, new_value):
         """Utility to convert and clip a new value array."""
@@ -402,7 +401,7 @@ class PhysicalProperty:
         unit_key = unit.lower() if unit else None
         prop_type = DEFAULT_CONVERTER.get_unit_type(unit_key)
         if not prop_type:
-            logger.warning(f"Unknown unit '{unit}', defaulting to generic PhysicalProperty.")
+            logger.warning("Unknown unit '%s', defaulting to generic PhysicalProperty.", unit)
             return cls(name=name, value=value, unit=unit, doc=doc)
 
         # Define mapping of property types to their corresponding class names
@@ -428,10 +427,14 @@ class PhysicalProperty:
                 prop_class = __import__(module_name, fromlist=[class_name])
                 prop_class = getattr(prop_class, class_name, None)
             except ImportError as e:
-                logger.warning(f"Failed to import class '{class_name}' due to {e}, using PhysicalProperty.")
+                logger.warning(
+                    "Failed to import class '%s' due to %s, using PhysicalProperty.",
+                    class_name,
+                    e
+                )
 
         if not prop_class or not issubclass(prop_class, PhysicalProperty):
-            logger.warning(f"Class '{class_name}' not found or not a PhysicalProperty subclass, using PhysicalProperty.")
+            logger.warning("Class '%s' not found or not a PhysicalProperty subclass, using PhysicalProperty.", class_name)
             return cls(name=name, value=value, unit=unit, doc=doc)
 
         return prop_class(name=name, value=value, unit=unit, doc=doc)
@@ -684,7 +687,7 @@ class PhysicalProperty:
         if prop_type := d_copy.pop("type", None):
             prop_class = globals().get(prop_type, PhysicalProperty)
             if not issubclass(prop_class, PhysicalProperty):
-                logger.warning(f"Type '{prop_type}' not a PhysicalProperty subclass, using PhysicalProperty.")
+                logger.warning("Type '%s' not a PhysicalProperty subclass, using PhysicalProperty.", prop_type)
                 prop_class = PhysicalProperty
             return prop_class(**d_copy)
         # Fallback to `from_unit` if no type is provided

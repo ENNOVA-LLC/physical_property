@@ -117,19 +117,19 @@ def get_unit_set(unit_set='standard', flat_dict=False):
     unit_set = unit_set.lower()
     if unit_set not in unit_sets:
         raise ValueError(f"Unsupported unit set. Valid options are: {list(unit_sets.keys())}")
-    
+
     units = unit_sets[unit_set]
-    if flat_dict:
-        flat_units = {}
-        for key, value in units.items():
-            if isinstance(value, dict):
-                for nested_key, nested_value in value.items():
-                    flat_units[key] = nested_value
-            else:
-                flat_units[key] = value
-        return flat_units
-    else:
+    if not flat_dict:
         return units
+
+    flat_units = {}
+    for key, value in units.items():
+        if isinstance(value, dict):
+            for nested_key, nested_value in value.items():
+                flat_units[key] = nested_value
+        else:
+            flat_units[key] = value
+    return flat_units
 
 
 # For debugging purposes
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     # Loop over unit sets and print out the unit conversion mapping for each
     for unit_set in unit_sets:
-        logger.info(f"{unit_set} units:")
+        print(f"{unit_set} units:")
         for key, unit in unit_sets[unit_set].items():
-            logger.debug(f"  {key}: {unit}")
+            print(f"  {key}: {unit}")
 

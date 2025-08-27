@@ -155,7 +155,7 @@ class SolventBlendSpec:
                 raise ValueError("value list must contain numbers.")
         elif not isinstance(self.value, (int, float)):
             raise ValueError("value must be a number or list of numbers.")
-        logger.debug(f"Created SolventBlendSpec: {self}")
+        logger.debug("Created SolventBlendSpec: %s", self)
 
     @property
     def value(self) -> np.ndarray:
@@ -239,7 +239,7 @@ class ChemicalComposition:
         """Validate species."""
         if not self.species:
             raise ValueError("Composition must contain at least one species.")
-        logger.debug(f"Created ChemicalComposition: {self}")
+        logger.debug("Created ChemicalComposition: %s", self.name)
 
     def convert(self, to_unit: str) -> "ChemicalComposition":
         """Convert all species to the specified unit."""

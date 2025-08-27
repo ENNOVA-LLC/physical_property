@@ -92,7 +92,12 @@ class XYData:
                 value=np.arange(num_series)
             ))
         elif len(self.properties_data[y_name]) > len(self.series_index.value):
-            logger.warning(f"Number of y_data entries ({len(self.properties_data[y_name])}) exceeds series_index ({len(self.series_index.value)}) for {y_name}")
+            logger.warning(
+                "Number of y_data entries (%s) exceeds series_index (%s) for %s",
+                len(self.properties_data[y_name]),
+                len(self.series_index.value),
+                y_name,
+            )
 
     def add_series_data(self, series_index_val: Union[float, int, str], y_data_dict: Dict[str, Union[PhysicalProperty, np.ndarray, list]]) -> None:
         """
@@ -106,7 +111,7 @@ class XYData:
             A dictionary mapping property names to their y values (e.g., {"pressure": [1, 2, 3], "temp": [300, 310, 320]}).
             Values can be lists, numpy arrays, or PhysicalProperty instances.
         """
-        logger.debug(f"Adding series data for series_index_val={series_index_val}")
+        logger.debug("Adding series data for series_index_val=%s", series_index_val)
         
         # Update series_index
         if self.series_index is None:
@@ -208,7 +213,7 @@ class XYData:
 
         for idx, prop in enumerate(properties):
             if prop not in self.properties_data:
-                logger.warning(f"Property '{prop}' not found.")
+                logger.warning("Property '%s' not found.", prop)
                 continue
 
             row = (idx // 2) + 1
