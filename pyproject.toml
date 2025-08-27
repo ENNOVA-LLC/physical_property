@@ -1,40 +1,48 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "physical_property"
 version = "0.3.6"
 description = "A package for managing physical properties with unit conversions"
 readme = "README.md"
-authors = [
-    { name = "Caleb Sisco", email = "sisco@ennova.us" }
-]
-license = { file = "LICENSE" }
-requires-python = ">=3.8"
-dependencies = [
-    "attrs",
-    "numpy",
-    "scipy",
-    "plotly",
-    "loguru",
-]
+license = "MIT"
+authors = ["Caleb Sisco <sisco@ennova.us>"]
+homepage = "https://github.com/ENNOVA-LLC/physical_property"
+repository = "https://github.com/ENNOVA-LLC/physical_property"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
-packages = { find = { where = ["src"] } }
+# src-layout packaging
+packages = [{ include = "physical_property", from = "src" }]
 
-[project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-cov",
-]
-dev = [
-    "black",
-    "isort",
-    "flake8",
-]
+# don't ship dev dirs
+exclude = ["tools/**", "tests/**", "examples/**"]
 
-[project.urls]
-"Homepage" = "https://github.com/ENNOVA-LLC/physical_property"
-"Repository" = "https://github.com/ENNOVA-LLC/physical_property"
+[tool.poetry.dependencies]
+python = ">=3.8"
+attrs = "*"
+numpy = "*"
+scipy = "*"
+plotly = "*"
+# make Loguru optional
+loguru = { version = "^0.7", optional = true }
+
+[tool.poetry.extras]
+# enable with: pip install "physical_property[logging]"
+logging = ["loguru"]
+
+# dev/test groups (replace with your prefs)
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+isort = "*"
+flake8 = "*"
+ruff = "*"
+pre-commit = "*"
+
+# lint rule to block f-strings in logging calls
+[tool.ruff]
+select = ["E","F","W","G","PLE1205","PLE1206"]

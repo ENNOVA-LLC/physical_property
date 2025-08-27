@@ -156,3 +156,17 @@ clients/
 scripts/
 logs/
 .qodo
+
+# ---- secrets / credentials ----
+**/api/
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+secrets/*
+.secrets/**
+credentials/*
