@@ -65,7 +65,7 @@ def _ensure_parent_dir(p: Path):
 def _parse_bytes(s: str, default=10 * 1024 * 1024) -> int:
     m = re.match(r"\s*(\d+(?:\.\d+)?)\s*([KMG]?B)\s*$", s or "", re.I)
     if not m: return default
-    n, u = float(m.group(1)), m.group(2).upper()
+    n, u = float(m[1]), m[2].upper()
     return int(n * {"KB":1024,"MB":1024**2,"GB":1024**3}.get(u,1))
 
 def setup_logging(
@@ -86,14 +86,14 @@ def setup_logging(
 
     lvl = (level or os.getenv("PHYS_PROP_LOG_LEVEL") or "WARNING").upper()
     log_dir = log_dir or os.getenv("PHYS_PROP_LOG_DIR") or "logs"
-    use_loguru = (use_loguru if use_loguru is not None
-                  else os.getenv("PHYS_PROP_USE_LOGURU","0") == "1")
+    use_loguru = (
+        use_loguru if use_loguru is not None
+        else os.getenv("PHYS_PROP_USE_LOGURU","0") == "1"
+    )
     json = json or (os.getenv("PHYS_PROP_LOG_JSON","0") == "1")
     backtrace = backtrace or (os.getenv("PHYS_PROP_LOG_BACKTRACE","0") == "1")
     diagnose = diagnose or (os.getenv("PHYS_PROP_LOG_DIAGNOSE","0") == "1")
     quiet_modules = quiet_modules or {}
-    enable_namespaces = tuple(enable_namespaces or ("physical_property",))
-
     file_path = Path(log_file or Path(log_dir)/"physical_property_{time}.log".format(time=""))
     if log_file is None:  # add timestamp only for stdlib path
         file_path = Path(log_dir)/"physical_property_{:s}.log".format(__import__("datetime").datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -116,13 +116,14 @@ def setup_logging(
             _loguru.add(sys.stderr, level=lvl, serialize=True, backtrace=backtrace, diagnose=diagnose, enqueue=True)
             _loguru.add(file_path, level=lvl, serialize=True, rotation=rotation, retention=retention, enqueue=True,
                         backtrace=backtrace, diagnose=diagnose)
-        # bridge stdlib -> Loguru
         class _Intercept(logging.Handler):
             def emit(self, record: logging.LogRecord) -> None:
                 try: lg = _loguru.level(record.levelname).name
                 except Exception: lg = record.levelno
                 _loguru.opt(depth=6, exception=record.exc_info).log(lg, record.getMessage())
         logging.basicConfig(handlers=[_Intercept()], level=0)
+        
+        enable_namespaces = tuple(enable_namespaces or ("physical_property",))
         for ns in enable_namespaces:
             with contextlib.suppress(Exception): _loguru.enable(ns)
     else:

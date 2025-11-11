@@ -972,11 +972,10 @@ class PhysicalProperty:
 
     def __rsub__(self, other) -> 'PhysicalProperty':
         """Right subtraction (other - self)."""
-        if isinstance(other, (int, float, np.ndarray)):
-            result_value = other - self.value
-            return self.__class__(name=self.name, value=result_value, unit=self.unit, doc=self.doc)
-        else:
+        if not isinstance(other, (int, float, np.ndarray)):
             raise TypeError(f"Right subtraction not supported between {type(other)} and {type(self)}")
+        result_value = other - self.value
+        return self.__class__(name=self.name, value=result_value, unit=self.unit, doc=self.doc)
 
     # Multiplication
     # def __mul__(self, other) -> 'PhysicalProperty':

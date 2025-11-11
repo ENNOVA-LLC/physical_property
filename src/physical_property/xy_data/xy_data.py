@@ -5,6 +5,8 @@ For storage and visualization of (x,y) data across multiple series (e.g., time c
 from attrs import define, field
 from typing import Dict, List, Optional, Union
 import numpy as np
+import pandas as pd
+
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -74,14 +76,8 @@ class XYData:
             y_data = PhysicalProperty(name=y_name, unit=None, value=np.asarray(y_data))
         else:
             y_name = y_data.name
-        
-        if len(y_data.value) != len(self.x_data.value):
-            raise ValueError(f"Inconsistent data dimensions for {y_name}: x_data has {len(self.x_data.value)} points, y_data has {len(y_data.value)} points")
-        
-        if y_name not in self.properties_data:
-            self.properties_data[y_name] = []
-        
-        self.properties_data[y_name].append(y_data)
+
+        self._validate_and_store_y_data(y_data, y_name)
         
         # Update series_index if not provided
         if self.series_index is None:
@@ -112,7 +108,7 @@ class XYData:
             Values can be lists, numpy arrays, or PhysicalProperty instances.
         """
         logger.debug("Adding series data for series_index_val=%s", series_index_val)
-        
+
         # Update series_index
         if self.series_index is None:
             object.__setattr__(self, "series_index", PhysicalProperty(
@@ -132,11 +128,18 @@ class XYData:
         for y_name, y_data in y_data_dict.items():
             if not isinstance(y_data, PhysicalProperty):
                 y_data = PhysicalProperty(name=y_name, unit=None, value=np.asarray(y_data))
-            if len(y_data.value) != len(self.x_data.value):
-                raise ValueError(f"Inconsistent data dimensions for {y_name}: x_data has {len(self.x_data.value)} points, y_data has {len(y_data.value)} points")
-            if y_name not in self.properties_data:
-                self.properties_data[y_name] = []
-            self.properties_data[y_name].append(y_data)
+            self._validate_and_store_y_data(y_data, y_name)
+
+    def _validate_and_store_y_data(self, y_data, y_name):
+        """Utility to validate and store y_data."""
+        if len(y_data.value) != len(self.x_data.value):
+            raise ValueError(
+                f"Inconsistent data dimensions for {y_name}: x_data has {len(self.x_data.value)} points, y_data has {len(y_data.value)} points"
+            )
+        if y_name not in self.properties_data:
+            self.properties_data[y_name] = []
+        self.properties_data[y_name].append(y_data)
+
 
     # region PLOTTING UTILITIES
     def plot(self, properties=None, downsample_factor=1, max_plots_per_figure=10) -> List[go.Figure]:
@@ -292,6 +295,53 @@ class XYData:
         x_str = f"x_data={self.x_data.name} ({len(self.x_data.value)} points, unit={self.x_data.unit})"
         props_str = ", ".join([f"{key} ({len(val)} series)" for key, val in self.properties_data.items()])
         return f"XYData(\n  {series_str}, \n  {x_str}, \n  properties=[{props_str}])"
+    # endregion
+
+    # region: Dataframes
+    def to_frames_by_series(self, properties: Optional[List[str]] = None, include_units: bool = True) -> Dict[int, pd.DataFrame]:
+        """
+        Convert the XYData instance to a dictionary of pandas DataFrames, where each DataFrame represents a series of data.
+
+        Parameters
+        ----------
+        properties : List[str], optional
+            List of property names to include. If None, all properties are included.
+        include_units : bool, optional
+            Whether to include units in the column names. Defaults to True.
+
+        Returns
+        -------
+        Dict[int, pd.DataFrame]
+            A dictionary mapping series indices to their corresponding DataFrames.
+        """
+        if not self.properties_data:
+            return {}
+
+        props = properties or list(self.properties_data.keys())
+
+        # helper for "Name [unit]"
+        def col_name(pp: PhysicalProperty) -> str:
+            if not include_units or not getattr(pp, "unit", None):
+                return pp.name
+            return f"{pp.name} [{pp.unit}]"
+
+        # pre-build X column
+        x_col_name = col_name(self.x_data)
+        x_vals = self.x_data.value
+
+        # how many series? (length of lists under any property)
+        n_series = len(next(iter(self.properties_data.values())))
+        frames: Dict[int, pd.DataFrame] = {}
+
+        for i in range(n_series):
+            cols = {x_col_name: x_vals}
+            for p in props:
+                ypp = self.properties_data.get(p, [])
+                if i < len(ypp):
+                    cols[col_name(ypp[i])] = ypp[i].value
+            frames[i] = pd.DataFrame(cols)
+
+        return frames
     # endregion
 
 if __name__ == "__main__":
