@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "physical_property"
-version = "0.3.8"
+version = "0.3.9-alpha.1"
 description = "A package for managing physical properties with unit conversions"
 readme = "README.md"
 license = "MIT"
@@ -25,7 +25,9 @@ numpy = "*"
 scipy = "*"
 plotly = "*"
 pandas = "^2.3.3"
-# make Loguru optional
+fpcore = { path = "../fpCore", develop = true }
+#fpcore = { git = "https://github.com/ENNOVA-LLC/fpCore.git", branch = "main" } # for testing
+#fpcore = { git = "https://github.com/ENNOVA-LLC/fpCore.git", tag = "v0.1.0" } # for stable release
 loguru = { version = "^0.7", optional = true }
 
 [tool.poetry.extras]

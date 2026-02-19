@@ -1,146 +1,81 @@
 """ `units.unit_sets`
 
 For the unit conversion functionality in `__str__` methods.
+Integration with fpCore for unit definitions.
 """
-#from ..utils.units import convert_x
+from typing import Dict, Any, Union
+from attrs import asdict
+
+# Integration with fpCore for unit definitions
+from fpcore.units import SI, US, US_OIL, EU, EU_OIL
 
 # Configure logging
 from ..utils.logging import get_logger
 logger = get_logger(__name__)
 
-unit_sets = {
-    'standard': {
-        'T'     : 'K',
-        'P'     : 'bar',
-        'V'     : 'm3',
-        't'     : 's',
-        'L'     : 'm',
-        'R'     : 'm',
-        'angle' : 'rad',
-        'm'     : 'kg',
-        'mol'   : 'mol',
-        'mflow' : {'V': 'kg/s', 'L': 'kg/s'},
-        'vflow' : {'V': 'm3/s', 'L': 'm3/s'},
-        'dens'  : 'kg/m3',
-        'visco' : 'Pa.s',
-        "kinematic_visco": "st",
-        'velo'  : 'm/s',
-    },
-    'field': {
-        'T'     : 'F',
-        'P'     : 'psia',
-        'V'     : 'ft3',
-        't'     : 'day',
-        'L'     : 'ft',
-        'R'     : 'in',
-        'angle' : 'rad',
-        'm'     : 'kg',
-        'mol'   : 'mol',
-        'mflow' : {'V': 'kg/s', 'L': 'kg/s'},
-        'vflow' : {'V': 'Mcf/d', 'L': 'bbl/d'},
-        'dens'  : 'g/cm3',
-        'visco' : 'cP',
-        "kinematic_visco": "st",
-        'velo'  : 'ft/s',
-    },
-    'us': {
-        'T'     : 'F',
-        'P'     : 'psia',
-        'V'     : 'ft3',
-        't'     : 'day',
-        'L'     : 'ft',
-        'R'     : 'in',
-        'angle' : 'rad',
-        'm'     : 'lb',
-        'mol'   : 'mol',
-        'mflow' : {'V': 'lb/s', 'L': 'lb/s'},
-        'vflow' : {'V': 'Mcf/d', 'L': 'bbl/d'},
-        'dens'  : 'lb/ft3',
-        'visco' : 'cP',
-        "kinematic_visco": "st",
-        'velo'  : 'ft/s',
-    },
-    'si': {
-        'T'     : 'K',
-        'P'     : 'Pa',
-        'V'     : 'm3',
-        't'     : 's',
-        'L'     : 'm',
-        'R'     : 'm',
-        'angle' : 'rad',
-        'm'     : 'kg',
-        'mol'   : 'mol',
-        'mflow' : {'V': 'kg/s', 'L': 'kg/s'},
-        'vflow' : {'V': 'm3/s', 'L': 'm3/s'},
-        'dens'  : 'kg/m3',
-        'visco' : 'Pa.s',
-        "kinematic_visco": "st",
-        'velo'  : 'm/s',
-    },
-    'metric': {
-        'T'     : 'C',
-        'P'     : 'bar',
-        'V'     : 'L',
-        't'     : 'day',
-        'L'     : 'm',
-        'R'     : 'cm',
-        'angle' : 'rad',
-        'm'     : 'kg',
-        'mol'   : 'mol',
-        'mflow' : {'V': 'kg/s', 'L': 'kg/s'},
-        'vflow' : {'V': 'L/d', 'L': 'L/d'},
-        'dens'  : 'g/mL',
-        'visco' : 'cP',
-        "kinematic_visco": "st",
-        'velo'  : 'm/s',
-    }
+# Map legacy names to fpCore profiles
+_PROFILE_MAP = {
+    'si': SI,
+    'metric': SI,
+    'us': US,
+    'us_oil': US_OIL,
+    'field': US_OIL, # Mapping 'field' to US Oilfield
+    'eu': EU,
+    'eu_oil': EU_OIL,
 }
-unit_sets['default'] = unit_sets.get('standard')
 
-def get_unit_set(unit_set='standard', flat_dict=False):
+# Define legacy DEFAULT dictionary using legacy values
+# This is crucial for backward compatibility (e.g. pressure=bar instead of Pa).
+# Original DEFAULT_UNIT_SET was in unit_utils.py.
+DEFAULT_UNIT_SET = {
+    "temperature":      "kelvin",
+    "pressure":         "bar",
+    "length":           "meter",
+    "mass":             "kg",
+    "mol":              "mol",
+    "time":             "s",
+    "volume":           "m3",
+    "viscosity":        "pa.s",
+    "kinematic_viscosity": "st",
+    "velocity":         "m/s",
+    "composition":      "mol",
+}
+
+def get_unit_set(unit_set: Union[str, Dict[str, Any]] = 'standard', flat_dict: bool = False) -> Dict[str, Any]:
     """
     Get the unit conversion mapping for the specified unit set.
 
     Parameters
     ----------
-    unit_set : str
+    unit_set : str or dict
         The unit set to get the unit conversion mapping for.
-        Valid options are: ['standard', 'field', 'US', 'SI', 'metric']
+        Valid 'str' options include: ['standard', 'field', 'US', 'SI', 'metric', 'eu', 'us_oil']
+        If 'dict' is provided, it is returned as is.
     flat_dict : bool, optional
-        If True, extract the key inside nested dictionaries.
+        Ignored. Kept for signature compatibility.
         
     Returns
     -------
     dict
-        The unit conversion mapping for the specified unit set.
+        The unit conversion mapping for the specified unit set (using canonical keys).
     """
-    unit_set = unit_set.lower()
-    if unit_set not in unit_sets:
-        raise ValueError(f"Unsupported unit set. Valid options are: {list(unit_sets.keys())}")
+    if isinstance(unit_set, dict):
+        return unit_set
 
-    units = unit_sets[unit_set]
-    if not flat_dict:
-        return units
+    # 1. Handle 'standard' explicitly (legacy default)
+    if unit_set.lower() == 'standard':
+        return DEFAULT_UNIT_SET.copy()
+        
+    # 2. Handle fpCore profiles
+    profile = _PROFILE_MAP.get(unit_set.lower())
+    if profile:
+        return asdict(profile)
+        
+    # 3. Fallback / Error
+    valid_options = ['standard'] + list(_PROFILE_MAP.keys())
+    raise ValueError(f"Unsupported unit set: {unit_set}. Valid options are: {valid_options}")
 
-    flat_units = {}
-    for key, value in units.items():
-        if isinstance(value, dict):
-            for nested_key, nested_value in value.items():
-                flat_units[key] = nested_value
-        else:
-            flat_units[key] = value
-    return flat_units
-
-
-# For debugging purposes
 if __name__ == "__main__":
-    """
-    Print out the unit conversion mapping for each unit set.
-    """
-
-    # Loop over unit sets and print out the unit conversion mapping for each
-    for unit_set in unit_sets:
-        print(f"{unit_set} units:")
-        for key, unit in unit_sets[unit_set].items():
-            print(f"  {key}: {unit}")
-
+    # Test
+    print("Standard:", get_unit_set("standard"))
+    print("US:", get_unit_set("us"))

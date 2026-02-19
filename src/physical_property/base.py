@@ -72,7 +72,8 @@ class PhysicalProperty:
     doc: str = ""
     _value: np.ndarray = attr.ib(
         default=attr.Factory(lambda: np.array([], dtype=float)),
-        converter=lambda v: np.array(v, dtype=float) if v is not None else np.array([], dtype=float)
+        converter=lambda v: np.array(v.value, dtype=float) if hasattr(v, "value") and isinstance(getattr(v, "value", None), np.ndarray) else (np.array(v, dtype=float) if v is not None else np.array([], dtype=float)),
+        alias="value"  # Allow initialization with `value`
     )
     bounds: Optional[Tuple[Optional[float], Optional[float]]] = attr.ib(default=None)
     converter: UnitConverter = attr.ib(default=DEFAULT_CONVERTER, repr=False)  # Shared default
@@ -164,7 +165,19 @@ class PhysicalProperty:
         """
         return self._value
 
-    def empty_value(self) -> np.ndarray:
+    @value.setter
+    def value(self, new_value: Union[np.ndarray, float, List[float]]) -> None:
+        """
+        Set the value of the physical property.
+
+        Parameters
+        ----------
+        new_value : Union[np.ndarray, float, List[float]]
+            The new value to set.
+        """
+        self.update_value(new_value)
+
+    def empty_value(self) -> None:
         """
         Update the value attribute with an empty array.
         """
@@ -274,8 +287,19 @@ class PhysicalProperty:
     def _convert_and_clip_new_value(self, new_value):
         """Utility to convert and clip a new value array."""
         if isinstance(new_value, PhysicalProperty):
-            new_value = new_value.value
-        result = np.array(new_value, dtype=float)
+            # Convert units if possible
+            if new_value.unit != self.unit and self.unit is not None:
+                new_value = new_value.convert(self.unit)
+            else:
+                new_value = new_value.value
+        
+        # Handle None explicitly if needed or let np.array handle basic types
+        # If new_value has None, np.array might fail with float dtype unless it's None itself
+        if new_value is None:
+            result = np.array([], dtype=float)
+        else:
+            result = np.array(new_value, dtype=float)
+            
         result = self._check_and_clip_bounds(result)
         return result
 
