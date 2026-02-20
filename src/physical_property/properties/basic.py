@@ -4,31 +4,38 @@ Basic (or fundamental) physical properties (time, length, area, velocity, angle)
 """
 import attr
 import numpy as np
+from typing import Optional
 
 from ..base import PhysicalProperty
 
 @attr.s(auto_attribs=True)
 class Time(PhysicalProperty):
     """Time property (base unit: s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.time(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Length(PhysicalProperty):
     """Length property (base unit: meters)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit or (self.unit is None and to_unit is None):
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.length(self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
 class Rate(PhysicalProperty):
     """Rate property (base unit: 1/s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         # Extract the time units from the rate unit format (e.g., "1/s" or "1/min")
         _, unit_in = self.unit.split("/")
         _, unit_out = to_unit.split("/")
@@ -39,9 +46,11 @@ class Rate(PhysicalProperty):
 @attr.s(auto_attribs=True)
 class Area(PhysicalProperty):
     """Area property (base unit: m^2)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit or (self.unit is None and to_unit is None):
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.convert("area", self.value, self.unit, to_unit)
 
 @attr.s(auto_attribs=True)
@@ -52,9 +61,11 @@ class Angle(PhysicalProperty):
     """
     is_reference_vertical: bool = True
 
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         if self.unit == "rad" and to_unit == "deg":
             return np.degrees(self.value)
         elif self.unit == "deg" and to_unit == "rad":
@@ -110,7 +121,9 @@ class Angle(PhysicalProperty):
 @attr.s(auto_attribs=True)
 class Velocity(PhysicalProperty):
     """Velocity property (base unit: m/s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.velocity(self.value, self.unit, to_unit)

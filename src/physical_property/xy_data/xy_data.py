@@ -21,6 +21,10 @@ logger = get_logger(__name__)
 class XYData:
     """
     Class to store and visualize (x,y) data across multiple series.
+    
+    The primary use case is for storing results of multiphase flow calculations at different time cuts or sample points, 
+    where x could be location along the pipe and y could be various properties (pressure, velocity, etc.) at those locations.
+    Each series corresponds to a different time cut, and the class can handle multiple properties for each series.
 
     Attributes
     ----------
@@ -57,7 +61,9 @@ class XYData:
         object.__setattr__(self, "x_data", x_data)
         object.__setattr__(self, "properties_data", {})
 
-    # region DATA MANAGEMENT
+    # ----------------------------------------------------------------------------
+    # region: Data Management
+    # ----------------------------------------------------------------------------
     def add_y_data(self, y_data: Union[PhysicalProperty, np.ndarray, list], y_name: str = None) -> None:
         """
         Add data for a specific property.
@@ -140,8 +146,9 @@ class XYData:
             self.properties_data[y_name] = []
         self.properties_data[y_name].append(y_data)
 
-
-    # region PLOTTING UTILITIES
+    # ----------------------------------------------------------------------------
+    # region: Plotting Utils
+    # ----------------------------------------------------------------------------
     def plot(self, properties=None, downsample_factor=1, max_plots_per_figure=10) -> List[go.Figure]:
         """
         Generate (x, y) plots for the specified properties, with each plot showing all series.
@@ -281,7 +288,9 @@ class XYData:
         return fig
     # endregion
 
+    # ----------------------------------------------------------------------------
     # region: Magic Methods
+    # ----------------------------------------------------------------------------
     def __str__(self):
         """
         Return a string representation of the XYData instance, including the x_data, properties_data, and series_index.
@@ -297,8 +306,10 @@ class XYData:
         return f"XYData(\n  {series_str}, \n  {x_str}, \n  properties=[{props_str}])"
     # endregion
 
+    # ----------------------------------------------------------------------------
     # region: Dataframes
-    def to_frames_by_series(self, properties: Optional[List[str]] = None, include_units: bool = True) -> Dict[int, pd.DataFrame]:
+    # ----------------------------------------------------------------------------
+    def to_frames_by_series(self, properties: Optional[List[str]] = None, include_units: bool = True) -> Dict[Union[int, float, str], pd.DataFrame]:
         """
         Convert the XYData instance to a dictionary of pandas DataFrames, where each DataFrame represents a series of data.
 
@@ -311,8 +322,9 @@ class XYData:
 
         Returns
         -------
-        Dict[int, pd.DataFrame]
-            A dictionary mapping series indices to their corresponding DataFrames.
+        Dict[Union[int, float, str], pd.DataFrame]
+            A dictionary mapping series indices (values from series_index if available, else 0-based integers)
+            to their corresponding DataFrames.
         """
         if not self.properties_data:
             return {}
@@ -331,19 +343,74 @@ class XYData:
 
         # how many series? (length of lists under any property)
         n_series = len(next(iter(self.properties_data.values())))
-        frames: Dict[int, pd.DataFrame] = {}
+        
+        # Determine keys for the dictionary
+        keys = list(range(n_series))
+        if self.series_index is not None and len(self.series_index.value) >= n_series:
+            # use the actual values from series_index
+            keys = self.series_index.value[:n_series]
+            # Convert numpy scalars to python types for better dict compatibility
+            keys = [k.item() if hasattr(k, "item") else k for k in keys]
 
-        for i in range(n_series):
+        frames: Dict[Union[int, float, str], pd.DataFrame] = {}
+
+        for i, key in enumerate(keys):
             cols = {x_col_name: x_vals}
             for p in props:
                 ypp = self.properties_data.get(p, [])
                 if i < len(ypp):
                     cols[col_name(ypp[i])] = ypp[i].value
-            frames[i] = pd.DataFrame(cols)
+            frames[key] = pd.DataFrame(cols)
 
         return frames
+
+    def to_df(self, series_index_val: Union[int, float, str], properties: Optional[List[str]] = None, include_units: bool = True) -> pd.DataFrame:
+        """
+        Get a table (DataFrame) of the XY data for a specific series.
+
+        Parameters
+        ----------
+        series_index_val : int, float, or str
+            The value of the series index to retrieve. If series_index is not set on the object,
+            this should be the 0-based integer index of the series.
+        properties : List[str], optional
+            List of property names to include. If None, all properties are included.
+        include_units : bool, optional
+            Whether to include units in the column names. Defaults to True.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing x_data and the specified properties for the given series.
+
+        Raises
+        ------
+        ValueError
+            If the specified series_index_val is not found.
+        """
+        frames = self.to_frames_by_series(properties=properties, include_units=include_units)
+        
+        if series_index_val in frames:
+            return frames[series_index_val]
+        
+        # Fallback: exact match might fail due to float precision or type (int vs float)
+        # Try to find a match
+        for key in frames.keys():
+            if key == series_index_val: # This handles int/float comparison (1 == 1.0)
+                return frames[key]
+            try:
+                if np.isclose(float(key), float(series_index_val)):
+                    return frames[key]
+            except (ValueError, TypeError):
+                pass
+                
+        available = list(frames.keys())
+        raise ValueError(f"Series index '{series_index_val}' not found. Available series: {available}")
     # endregion
 
+# ----------------------------------------------------------------------------
+# region: Example Usage
+# ----------------------------------------------------------------------------
 if __name__ == "__main__":
     logger.info("Running xy_data module...")
     # Example: Single series

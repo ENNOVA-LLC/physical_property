@@ -7,9 +7,9 @@ that define the conversion logic for each property type.
 The `UnitConverter` class is used to handle unit conversions between different unit sets.
 """
 import re
-from typing import List, Tuple, Union, Dict, Any, Optional
+from typing import List, Tuple, Union, Dict, Any, Optional, TypeVar
 import numpy as np
-import attr
+from attrs import define, field, Factory
 from plotly import graph_objects as go
 
 from .units import UnitConverter  # Import the UnitConverter class
@@ -20,6 +20,8 @@ logger = get_logger(__name__)
 
 # Single default UnitConverter instance
 DEFAULT_CONVERTER = UnitConverter(unit_set="standard")
+
+Type_PhysicalProperty = TypeVar("Type_PhysicalProperty", bound="PhysicalProperty")
 
 def _to_snake_case(name: str) -> str:
     """Convert CamelCase to snake_case."""
@@ -47,7 +49,7 @@ def _robust_value_handling(value, tolist=False):
             value = val
     return value
 
-@attr.s(auto_attribs=True)
+@define
 class PhysicalProperty:
     """
     Base class for physical properties with unit information.
@@ -67,16 +69,22 @@ class PhysicalProperty:
         If not provided and the subclass defines DEFAULT_BOUNDS (in standard units),
         these will be automatically converted to the user-specified unit.
     """
-    name: str = attr.ib(default=attr.Factory(lambda self: self.__class__.__name__.lower(), takes_self=True))
-    unit: str = attr.ib(default=None)
+    name: str = field(
+        default=Factory(lambda self: self.__class__.__name__.lower(), takes_self=True)
+    )
+    unit: Optional[str] = field(default=None)
     doc: str = ""
-    _value: np.ndarray = attr.ib(
-        default=attr.Factory(lambda: np.array([], dtype=float)),
-        converter=lambda v: np.array(v.value, dtype=float) if hasattr(v, "value") and isinstance(getattr(v, "value", None), np.ndarray) else (np.array(v, dtype=float) if v is not None else np.array([], dtype=float)),
+    _value: np.ndarray = field(
+        default=Factory(lambda: np.array([], dtype=float)),
+        converter=lambda v: (
+            np.array(v.value, dtype=float) 
+            if hasattr(v, "value") and isinstance(getattr(v, "value", None), np.ndarray) 
+            else (np.array(v, dtype=float) if v is not None else np.array([], dtype=float))
+        ),
         alias="value"  # Allow initialization with `value`
     )
-    bounds: Optional[Tuple[Optional[float], Optional[float]]] = attr.ib(default=None)
-    converter: UnitConverter = attr.ib(default=DEFAULT_CONVERTER, repr=False)  # Shared default
+    bounds: Optional[Tuple[Optional[float], Optional[float]]] = field(default=None)
+    converter: UnitConverter = field(default=DEFAULT_CONVERTER, repr=False)  # Shared default
 
     @bounds.validator
     def check_bounds(self, attribute, value):
@@ -303,7 +311,7 @@ class PhysicalProperty:
         result = self._check_and_clip_bounds(result)
         return result
 
-    def copy(self) -> 'PhysicalProperty':
+    def copy(self: Type_PhysicalProperty) -> Type_PhysicalProperty:
         """
         Return a deep copy of the object.
         """
@@ -336,7 +344,7 @@ class PhysicalProperty:
             new_upper = float(upper_conv[0])
         return (new_lower, new_upper)
 
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """
         Convert the value to a new unit (default: no conversion).
 
@@ -367,7 +375,7 @@ class PhysicalProperty:
         prop_type = self._get_property_type()
         return self.converter.convert(prop_type, self.value, self.unit, to_unit)
 
-    def to(self, to_unit: str) -> 'PhysicalProperty':
+    def to(self: Type_PhysicalProperty, to_unit: str) -> Type_PhysicalProperty:
         """
         Return a new instance with the value converted to the specified unit.
 
@@ -389,7 +397,7 @@ class PhysicalProperty:
         new_bounds = self._convert_bounds(to_unit)
         return self.__class__(name=self.name, value=new_value, unit=to_unit, doc=self.doc, bounds=new_bounds)
 
-    def to_standard(self) -> 'PhysicalProperty':
+    def to_standard(self: Type_PhysicalProperty) -> Type_PhysicalProperty:
         """
         Convert to the standard unit defined by UnitConverter.DEFAULT_UNIT_SET.
 
@@ -467,7 +475,7 @@ class PhysicalProperty:
     # ---------------------------------------
     # region: NUMPY METHODS
     # ---------------------------------------
-    def interpolate(self, new_size: int) -> 'PhysicalProperty':
+    def interpolate(self: Type_PhysicalProperty, new_size: int) -> Type_PhysicalProperty:
         """
         Interpolate the value array to a new size.
 
@@ -532,7 +540,7 @@ class PhysicalProperty:
         """
         return np.max(self.value)
     
-    def std(self) -> float:
+    def std(self) -> Any:
         """
         Compute the standard deviation of the value array.
 
@@ -892,7 +900,13 @@ class PhysicalProperty:
     def __len__(self):
         return len(self.value)
     
-    def __getitem__(self, key) -> Union['PhysicalProperty', np.ndarray]:
+    def __iter__(self):
+        return iter(self.value)
+
+    def __array__(self, dtype=None):
+        return np.asarray(self.value, dtype=dtype)
+
+    def __getitem__(self, key: Union[int, slice, tuple, str, Any]) -> Union['PhysicalProperty', np.ndarray]:
         """
         Return a new instance with a sliced value array, or the value only if key is a tuple with 'val' or 'value'.
         

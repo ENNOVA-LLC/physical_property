@@ -28,15 +28,15 @@ _PROFILE_MAP = {
 # This is crucial for backward compatibility (e.g. pressure=bar instead of Pa).
 # Original DEFAULT_UNIT_SET was in unit_utils.py.
 DEFAULT_UNIT_SET = {
-    "temperature":      "kelvin",
+    "temperature":      "K",
     "pressure":         "bar",
     "length":           "meter",
     "mass":             "kg",
     "mol":              "mol",
     "time":             "s",
-    "volume":           "m3",
-    "viscosity":        "pa.s",
-    "kinematic_viscosity": "st",
+    "volume":           "m^3",
+    "viscosity":        "Pa*s",
+    "kinematic_viscosity": "St",
     "velocity":         "m/s",
     "composition":      "mol",
 }
