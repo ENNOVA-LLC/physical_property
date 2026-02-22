@@ -2,23 +2,23 @@
 
 Contains classes for transport properties (e.g., viscosity, shear stress).
 """
-import attr
+from attrs import define
 from typing import Optional
 import numpy as np
 
 from ..base import PhysicalProperty
 from .thermodynamic import Density
 
-@attr.s(auto_attribs=True)
+@define
 class Flow(PhysicalProperty):
     """Flow rate property (base unit: kg/s for mass, m³/s for volume)."""
-    def convert(self, to_unit: str, density: Optional[Density] = None) -> np.ndarray:
+    def convert(self, to_unit: Optional[str], density: Optional[Density] = None) -> np.ndarray:
         """
         Convert flow rate to a new unit, handling mass and volume flows.
 
         Parameters
         ----------
-        to_unit : str
+        to_unit : str, optional
             The target unit.
         density : Density, optional
             Density property for conversion from mass to volume flow and vice versa.
@@ -30,6 +30,8 @@ class Flow(PhysicalProperty):
         """
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         if density is None:
             density = Density(name="density", value=0.0, unit="kg/m3")
         return self.converter.flow(self.value, self.unit, to_unit, dens=density.value, dens_unit=density.unit)
@@ -52,28 +54,34 @@ class Flow(PhysicalProperty):
         """
         return self.__class__(name=self.name, value=self.convert(to_unit, density), unit=to_unit, doc=self.doc)
 
-@attr.s(auto_attribs=True)
+@define
 class Viscosity(PhysicalProperty):
     """Viscosity property (base unit: Pa*s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.viscosity(self.value, self.unit, to_unit)
     
-@attr.s(auto_attribs=True)
+@define
 class ShearStress(PhysicalProperty):
     """Shear stress property (base unit: bar)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.pressure(self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class PressureGradient(PhysicalProperty):
     """Pressure gradient property (base unit: bar/m)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         
         try:
             P_from, L_from = self.unit.split('/')
@@ -87,22 +95,26 @@ class PressureGradient(PhysicalProperty):
         # Adjust the pressure gradient: new_value = original_value * (pressure conversion factor / length conversion factor)
         return self.value * (pressure_factor / length_factor)
 
-@attr.s(auto_attribs=True)
+@define
 class PressureDrop(PhysicalProperty):
     """Pressure drop property (base unit: bar)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         
         pressure_factor = self.converter.convert("pressure", 1, self.unit, to_unit)
         return self.value * (pressure_factor)
     
-@attr.s(auto_attribs=True)
+@define
 class SurfaceTension(PhysicalProperty):
     """SurfaceTension property (base unit: N/m)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.viscosity(self.value, self.unit, to_unit)
         
     @classmethod
@@ -139,50 +151,50 @@ class SurfaceTension(PhysicalProperty):
         surface_tension = parachor * ((rho_liq - rho_vap) * 1e-3) ** 4
         self.update_value(surface_tension * 0.001)  # Convert from mN/m to N/m
 
-@attr.s(auto_attribs=True)
+@define
 class MassFlux(PhysicalProperty):
     """Mass flux property (base unit: kg/m²·s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("mass_flux", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class Diffusivity(PhysicalProperty):
     """Diffusivity property (base unit: m²/s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("diffusivity", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class Dispersion(PhysicalProperty):
     """Dispersion property (base unit: m²/s)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("dispersion", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class ThermalConductivity(PhysicalProperty):
     """Thermal conductivity property (base unit: k=W/m·K)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("thermal_conductivity", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class HeatTransferCoefficient(PhysicalProperty):
     """Heat transfer coefficient property (base unit: h=W/m²·K)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("heat_transfer_coefficient", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class HeatCapacity(PhysicalProperty):
     """Heat capacity property (base unit: Cp=J/kg·K)."""
-    def convert(self, to_unit: str) -> np.ndarray:
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         if self.unit == to_unit:
             return self.value
         return self.converter.convert("heat_capacity", self.value, self.unit, to_unit)

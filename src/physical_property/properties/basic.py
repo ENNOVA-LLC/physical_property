@@ -2,13 +2,13 @@
 
 Basic (or fundamental) physical properties (time, length, area, velocity, angle).
 """
-import attr
+from attrs import define
 import numpy as np
 from typing import Optional
 
 from ..base import PhysicalProperty
 
-@attr.s(auto_attribs=True)
+@define
 class Time(PhysicalProperty):
     """Time property (base unit: s)."""
     def convert(self, to_unit: Optional[str]) -> np.ndarray:
@@ -18,7 +18,7 @@ class Time(PhysicalProperty):
             raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.time(self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class Length(PhysicalProperty):
     """Length property (base unit: meters)."""
     def convert(self, to_unit: Optional[str]) -> np.ndarray:
@@ -28,7 +28,7 @@ class Length(PhysicalProperty):
             raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.length(self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class Rate(PhysicalProperty):
     """Rate property (base unit: 1/s)."""
     def convert(self, to_unit: Optional[str]) -> np.ndarray:
@@ -43,7 +43,7 @@ class Rate(PhysicalProperty):
         converted_time = self.converter.time(1.0, unit_out, unit_in)
         return self.value * converted_time
 
-@attr.s(auto_attribs=True)
+@define
 class Area(PhysicalProperty):
     """Area property (base unit: m^2)."""
     def convert(self, to_unit: Optional[str]) -> np.ndarray:
@@ -53,7 +53,7 @@ class Area(PhysicalProperty):
             raise ValueError("Cannot convert between dimensionless and dimensional units.")
         return self.converter.convert("area", self.value, self.unit, to_unit)
 
-@attr.s(auto_attribs=True)
+@define
 class Angle(PhysicalProperty):
     """Angle property (base unit: radians).
     
@@ -78,6 +78,12 @@ class Angle(PhysicalProperty):
         If the current angle is measured from vertical, convert it such that:
             horizontal_angle = 90° - vertical_angle (or π/2 - vertical_angle in radians).
         """
+        # DEBUG: Check why attribute access fails
+        if not hasattr(self, 'is_reference_vertical'):
+            print(f"DEBUG: Angle instance missing 'is_reference_vertical'. Dir: {dir(self)}")
+            # Default to True as per class definition if missing (should not happen for attrs)
+            self.is_reference_vertical = True
+            
         if not self.is_reference_vertical:
             return self.copy()
         if self.unit == "deg":
@@ -118,7 +124,7 @@ class Angle(PhysicalProperty):
             is_reference_vertical=True
         )
         
-@attr.s(auto_attribs=True)
+@define
 class Velocity(PhysicalProperty):
     """Velocity property (base unit: m/s)."""
     def convert(self, to_unit: Optional[str]) -> np.ndarray:

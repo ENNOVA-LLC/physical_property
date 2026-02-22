@@ -15,7 +15,7 @@ class GasOilRatio(PhysicalProperty):
     Gas-Oil Ratio property supporting conversion among volumetric, mass, and molar ratios.
 
     Recognized unit formats (case-insensitive) are expressed as "gas_unit/oil_unit". For example:
-    - Volumetric: "ft3/bbl", "m3/m3"
+    - Volumetric: "ft^3/bbl", "m^3/m^3"
     - Mass: "kg/kg" (or similar variants like "kg gas/kg oil")
     - Molar: "mol/mol" (or similar variants)
 
@@ -60,26 +60,28 @@ class GasOilRatio(PhysicalProperty):
         factor = factor_gas / factor_oil
         return value * factor
 
-    def convert(self, to_unit: str, *,
-                gas_density: Optional[Union[Density, float, np.ndarray]] = None,
-                oil_density: Optional[Union[Density, float, np.ndarray]] = None,
-                gas_MW: Optional[Union[MolarMass, float]] = None,
-                oil_MW: Optional[Union[MolarMass, float]] = None) -> np.ndarray:
+    def convert(self, 
+        to_unit: Optional[str], *,
+        gas_density: Optional[Union[Density, float, np.ndarray]] = None,
+        oil_density: Optional[Union[Density, float, np.ndarray]] = None,
+        gas_MW: Optional[Union[MolarMass, float]] = None,
+        oil_MW: Optional[Union[MolarMass, float]] = None
+    ) -> np.ndarray:
         """
         Convert the GasOilRatio value from `self.unit` to `to_unit`.
 
         Parameters
         ----------
-        to_unit : str
+        to_unit : str, optional
             Target unit for conversion, specified in the format "gas_unit/oil_unit".
             Supported options include:
-            - Volumetric: e.g., "ft3/bbl", "m3/m3", "mL/mL"
+            - Volumetric: e.g., "ft^3/bbl", "m^3/m^3", "mL/mL"
             - Mass: e.g., "kg/kg", "lb/lb"
             - Molar: e.g., "mol/mol"
         gas_density : Density or float or np.ndarray, optional
-            Gas density required for volumetric ⇄ mass conversion (e.g., in kg/m³).
+            Gas density required for volumetric ⇄ mass conversion (e.g., in kg/m^3).
         oil_density : Density or float or np.ndarray, optional
-            Oil density required for volumetric ⇄ mass conversion (e.g., in kg/m³).
+            Oil density required for volumetric ⇄ mass conversion (e.g., in kg/m^3).
         gas_MW : MolarMass or float, optional
             Gas molecular weight required for mass ⇄ molar conversion.
         oil_MW : MolarMass or float, optional
@@ -95,6 +97,11 @@ class GasOilRatio(PhysicalProperty):
         ValueError
             If conversion cannot be performed due to missing parameters or unsupported unit types.
         """
+        if to_unit is None and self.unit is not None:
+            raise ValueError("Cannot convert between dimensionless and dimensional units.")
+        if not isinstance(to_unit, str) or not isinstance(self.unit, str):
+            raise ValueError("units must be a string in the format 'gas_unit/oil_unit'.")
+
         # Check if no conversion is required
         if self.unit.lower() == to_unit.lower():
             return self.value
@@ -105,9 +112,9 @@ class GasOilRatio(PhysicalProperty):
         
         # Convert density and molar mass inputs to appropriate types if provided
         if isinstance(gas_density, Density):
-            gas_density = gas_density.convert("kg/m3")
+            gas_density = gas_density.convert("kg/m^3")
         if isinstance(oil_density, Density):
-            oil_density = oil_density.convert("kg/m3")
+            oil_density = oil_density.convert("kg/m^3")
         if isinstance(gas_MW, MolarMass):
             gas_MW = gas_MW.convert("g/mol")
         if isinstance(oil_MW, MolarMass):
@@ -143,7 +150,7 @@ class GasOilRatio(PhysicalProperty):
                 raise ValueError("Gas and oil densities must be provided for mass to volumetric conversion.")
             
             result = intermediate * (oil_density / gas_density)
-            result = self._convert_within_volumetric(result, "m3/m3", to_unit)
+            result = self._convert_within_volumetric(result, "m^3/m^3", to_unit)
         elif to_type == "mole":
             if gas_MW is None or oil_MW is None:
                 raise ValueError("Gas and oil molecular weights must be provided for mass to molar conversion.")
@@ -162,13 +169,13 @@ class GasOilRatio(PhysicalProperty):
         to_unit : str
             Target unit for conversion, specified in the format "gas_unit/oil_unit".
             Supported options include:
-            - Volumetric: e.g., "ft3/bbl", "m3/m3", "mL/mL"
+            - Volumetric: e.g., "ft^3/bbl", "m^3/m^3", "mL/mL"
             - Mass: e.g., "kg/kg", "lb/lb"
             - Molar: e.g., "mol/mol"
         gas_density : Density or float or np.ndarray, optional
-            Gas density required for volumetric ⇄ mass conversion (e.g., in kg/m³).
+            Gas density required for volumetric ⇄ mass conversion (e.g., in kg/m^3).
         oil_density : Density or float or np.ndarray, optional
-            Oil density required for volumetric ⇄ mass conversion (e.g., in kg/m³).
+            Oil density required for volumetric ⇄ mass conversion (e.g., in kg/m^3).
         gas_MW : MolarMass or float, optional
             Gas molecular weight required for mass ⇄ molar conversion.
         oil_MW : MolarMass or float, optional

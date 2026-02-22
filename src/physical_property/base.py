@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 DEFAULT_CONVERTER = UnitConverter(unit_set="standard")
 
 Type_PhysicalProperty = TypeVar("Type_PhysicalProperty", bound="PhysicalProperty")
+ValLike = Union[np.ndarray, float, List[float], 'PhysicalProperty']
 
 def _to_snake_case(name: str) -> str:
     """Convert CamelCase to snake_case."""
@@ -158,9 +159,9 @@ class PhysicalProperty:
         #stack = "".join(traceback.format_stack(limit=10))
         logger.debug("Created %s instance", self.__class__.__name__) #: {self}\nStack trace:\n{stack}")
 
-    # ---------------------------------------
+    # -------------------------------------------------------------------------
     # region: Value handling
-    # ---------------------------------------
+    # -------------------------------------------------------------------------
     @property
     def value(self) -> np.ndarray:
         """
@@ -174,13 +175,13 @@ class PhysicalProperty:
         return self._value
 
     @value.setter
-    def value(self, new_value: Union[np.ndarray, float, List[float]]) -> None:
+    def value(self, new_value: ValLike) -> None:
         """
         Set the value of the physical property.
 
         Parameters
         ----------
-        new_value : Union[np.ndarray, float, List[float]]
+        new_value : np.ndarray or float or PhysicalProperty
             The new value to set.
         """
         self.update_value(new_value)
@@ -240,13 +241,13 @@ class PhysicalProperty:
                     )
         return clipped
 
-    def add_to_value(self, new_value: Union[np.ndarray, float]) -> None:
+    def add_to_value(self, new_value: ValLike]) -> None:
         """
         Add a new value or array to the current value array.
 
         Parameters
         ----------
-        new_value : np.ndarray or float
+        new_value : np.ndarray or float or PhysicalProperty
             The value(s) to add.
         """
         if isinstance(new_value, PhysicalProperty):
@@ -254,13 +255,13 @@ class PhysicalProperty:
         new_value = self.value + new_value
         self.update_value(new_value)
 
-    def update_value(self, new_value: Union[np.ndarray, float]) -> None:
+    def update_value(self, new_value: ValLike) -> None:
         """
         Update the value attribute with a new array or value.
 
         Parameters
         ----------
-        new_value : np.ndarray or float
+        new_value : np.ndarray or float or PhysicalProperty
             The new value(s).
         """
         new_val_array = self._convert_and_clip_new_value(new_value)
@@ -273,13 +274,13 @@ class PhysicalProperty:
         object.__setattr__(self, '_value', new_val_array)
         logger.debug("Updated %s instance: %s", self.__class__.__name__, self)
 
-    def append_value(self, new_value: Union[np.ndarray, float], prepend: bool = False) -> None:
+    def append_value(self, new_value: ValLike, prepend: bool = False) -> None:
         """
         Append a new value or array to the current value array.
 
         Parameters
         ----------
-        new_value : np.ndarray or float
+        new_value : np.ndarray or float or PhysicalProperty
             The value(s) to append.
         prepend : bool, optional
             If True, append the new values to the front of the array. Defaults to False.
@@ -472,9 +473,9 @@ class PhysicalProperty:
         return prop_class(name=name, value=value, unit=unit, doc=doc)
     # endregion
 
-    # ---------------------------------------
-    # region: NUMPY METHODS
-    # ---------------------------------------
+    # -------------------------------------------------------------------------
+    # region: NumPy methods
+    # -------------------------------------------------------------------------
     def interpolate(self: Type_PhysicalProperty, new_size: int) -> Type_PhysicalProperty:
         """
         Interpolate the value array to a new size.
@@ -576,7 +577,24 @@ class PhysicalProperty:
             True if the value is contained in the `value` attribute, False otherwise.
         """
         return np.any(self.value == value) if isinstance(value, np.ndarray) else value in self.value
-        
+    
+    def z_score(self, size: int = 5) -> np.ndarray:
+        """
+        Calculate the z-score of the value array using a uniform filter.
+
+        Parameters
+        ----------
+        size : int
+            The size of the filter window used in the uniform filter. Defaults to 5.
+
+        Returns
+        -------
+        np.ndarray
+            The z-score array.
+        """
+        from .utils.z_score import z_score
+        return z_score(self.value, size=size)
+
     # array creation methods
     def ones_like(self, constant=1., **kwargs) -> np.ndarray:
         """
@@ -647,9 +665,9 @@ class PhysicalProperty:
         return np.full_like(self.value, fill_value, **kwargs)
     # endregion
     
-    # ---------------------------------------
-    # region SERIALIZATION
-    # ---------------------------------------
+    # -------------------------------------------------------------------------
+    # region: Serialization and info
+    # -------------------------------------------------------------------------
     def to_dict(self, tolist=True) -> Dict[str, Any]:
         """
         Convert the PhysicalProperty instance to a dictionary.
@@ -752,10 +770,13 @@ class PhysicalProperty:
         return composites.get(class_name, class_name)  # Fallback to class_name if not found
     # endregion
     
-    # region PLOT
-    def plot(
-        self, x: Any = None, y: Any = None, title: str = None,
-        xaxis_title: str = None, yaxis_title: str = None,
+    
+    # -------------------------------------------------------------------------
+    # region: Plotting
+    # -------------------------------------------------------------------------
+    def plot(self, 
+        x: Any = None, y: Any = None, title: Optional[str] = None,
+        xaxis_title: Optional[str] = None, yaxis_title: Optional[str] = None,
         mode: Optional[str] = "lines+markers", 
         save_to: Optional[str] = None,
         **kwargs
@@ -888,7 +909,10 @@ class PhysicalProperty:
         return fig
     # endregion
     
-    # region MAGIC METHODS
+    
+    # -------------------------------------------------------------------------
+    # region: Magic Methods
+    # -------------------------------------------------------------------------
     def __str__(self):
         #v_str = f"{self.value[:5]}..." if self.value.size > 5 else f"{self.value}"
         v_str = self.value.shape
@@ -952,7 +976,10 @@ class PhysicalProperty:
         scalar_value = float(self.value.item() if self.value.ndim == 0 else self.value[0])
         return format(scalar_value, format_spec)
     
-    # region ARITHMETIC OPERATORS
+    # -------------------------------------------------------------------------
+    # region: Arithmetic Operators
+    # -------------------------------------------------------------------------
+    
     # division
     # def __truediv__(self, other) -> 'PhysicalProperty':
     #     if isinstance(other, PhysicalProperty):

@@ -2,7 +2,9 @@
 
 Contains classes for dimensionless numbers (e.g., Reynolds number, Prandtl number, Damkohler number, etc.).
 """
-import attr
+from typing import Optional
+
+from attrs import define
 import numpy as np
 from scipy.optimize import fsolve
 
@@ -12,7 +14,7 @@ from .thermodynamic import Density
 from .transport import Viscosity, Diffusivity, ThermalConductivity, HeatTransferCoefficient
 
 # region DIMENSIONLESS NUMBERS
-@attr.s(auto_attribs=True)
+@define
 class ReynoldsNumber(PhysicalProperty):
     """Reynolds number (dimensionless). Ratio of inertial to viscous forces acting on a liquid
     
@@ -20,7 +22,7 @@ class ReynoldsNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Reynolds_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
 
@@ -64,14 +66,14 @@ class ReynoldsNumber(PhysicalProperty):
         Re = (velocity_val * length_val * density_val) / viscosity_val
         self.update_value(Re)
     
-    def friction_factor(self, radius: Length, epsilon: Length=None) -> float:
+    def friction_factor(self, radius: Length, epsilon: Optional[Length]=None) -> float:
         """Friction factor using Colebrook-White equation
 
         Parameters
         ----------
         radius : Length
             Pipe radius.
-        epsilon : Length
+        epsilon : Length, optional
             Roughness of the pipe.
         
         Reference
@@ -96,7 +98,7 @@ class ReynoldsNumber(PhysicalProperty):
             return (1. / np.sqrt(f)) - 1.74 + 2. * np.log10(2 * e / d + 18.7 / (Re_val * np.sqrt(f)))
         return fsolve(friction_factor_fun, x0=f)
 
-@attr.s(auto_attribs=True)
+@define
 class PecletNumber(PhysicalProperty):
     """Peclet number (dimensionless) for mass transfer. Ratio of a fluid's advective and diffusive transport rates.
     
@@ -104,7 +106,7 @@ class PecletNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Péclet_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
@@ -139,11 +141,11 @@ class PecletNumber(PhysicalProperty):
         """
         velocity_val = velocity.convert('m/s')
         length_val = length.convert('m')
-        diffusivity_val = diffusivity.convert('m2/s')
+        diffusivity_val = diffusivity.convert('m^2/s')
         Pe = (velocity_val * length_val) / diffusivity_val
         self.update_value(Pe)
 
-@attr.s(auto_attribs=True)
+@define
 class FroudeNumber(PhysicalProperty):
     """Froude number property (dimensionless). Ratio of a fluid's flow inertia to the external field.
     
@@ -151,7 +153,7 @@ class FroudeNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Froude_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
@@ -189,7 +191,7 @@ class FroudeNumber(PhysicalProperty):
         Fr = velocity_val / np.sqrt(gravity * length_val)
         self.update_value(Fr)
 
-@attr.s(auto_attribs=True)
+@define
 class DamkohlerNumber(PhysicalProperty):
     """Damköhler number (dimensionless). Ratio of reaction rate to transport rate.
     
@@ -197,7 +199,7 @@ class DamkohlerNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Damköhler_numbers
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
@@ -231,7 +233,7 @@ class DamkohlerNumber(PhysicalProperty):
         Da = rate_val * res_time_val
         self.update_value(Da)
 
-@attr.s(auto_attribs=True)
+@define
 class PrandtlNumber(PhysicalProperty):
     """Prandtl number (dimensionless). Ratio of kinematic to thermal diffusivity.
     
@@ -239,12 +241,12 @@ class PrandtlNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Prandtl_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
 
-@attr.s(auto_attribs=True)
+@define
 class NusseltNumber(PhysicalProperty):
     """Nusselt number (dimensionless). Ratio of convective to conductive heat transfer.
     
@@ -257,7 +259,7 @@ class NusseltNumber(PhysicalProperty):
     -----
     The Nusselt number is a dimensionless number that represents the ratio of convective to conductive heat transfer.
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
@@ -317,7 +319,7 @@ class NusseltNumber(PhysicalProperty):
         Nu = 0.023 * Re_val ** 0.8 * Pr_val ** n
         self.update_value(Nu)
 
-@attr.s(auto_attribs=True)
+@define
 class SchmidtNumber(PhysicalProperty):
     """Schmidt number (dimensionless). Ratio of a fluid's kinematic viscosity to mass diffusivity.
     
@@ -325,7 +327,7 @@ class SchmidtNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Schmidt_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
@@ -359,8 +361,8 @@ class SchmidtNumber(PhysicalProperty):
             Mass diffusivity.
         """
         viscosity_val = viscosity.convert('Pa*s')
-        density_val = density.convert('kg/m3')
-        diffusivity_val = diffusivity.convert('m2/s')
+        density_val = density.convert('kg/m^3')
+        diffusivity_val = diffusivity.convert('m^2/s')
         Sc = viscosity_val / (density_val * diffusivity_val)
         self.update_value(Sc)
     
@@ -377,7 +379,7 @@ class SchmidtNumber(PhysicalProperty):
         Sc = peclet.value / reynolds.value
         self.update_value(Sc)
 
-@attr.s(auto_attribs=True)
+@define
 class MachNumber(PhysicalProperty):
     """Mach number (dimensionless). Ratio of the fluid velocity to the speed of sound in the fluid.
     
@@ -385,7 +387,7 @@ class MachNumber(PhysicalProperty):
     ---------
     https://en.wikipedia.org/wiki/Mach_number
     """
-    def convert(self, to_unit):
+    def convert(self, to_unit: Optional[str]) -> np.ndarray:
         """Dimensionless numbers do not support unit conversion. Returns the original value."""
         return self.value
     
