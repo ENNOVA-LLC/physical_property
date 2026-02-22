@@ -30,7 +30,7 @@ _PROFILE_MAP = {
 DEFAULT_UNIT_SET = {
     "temperature":      "K",
     "pressure":         "bar",
-    "length":           "meter",
+    "length":           "m",
     "mass":             "kg",
     "mol":              "mol",
     "time":             "s",

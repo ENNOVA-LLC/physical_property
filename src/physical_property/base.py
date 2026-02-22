@@ -241,7 +241,7 @@ class PhysicalProperty:
                     )
         return clipped
 
-    def add_to_value(self, new_value: ValLike]) -> None:
+    def add_to_value(self, new_value: ValLike) -> None:
         """
         Add a new value or array to the current value array.
 
