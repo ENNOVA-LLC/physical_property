@@ -32,11 +32,11 @@ def vol_cylinder(h, ro, ri=0.):
     Parameters
     ----------
     h : float or array-like
-        Height.
+        Height of cylinder.
     ro : float or array-like
-        Outer radius.
+        Outer radius of cylinder.
     ri : float or array-like
-        Inner radius.
+        Inner radius of cylinder. Default is 0 for solid cylinder.
 
     Returns
     -------

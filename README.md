@@ -1,5 +1,7 @@
 # Physical Property
 
+> **Superseded by `fpcore` as of 2026-05.** This package's classes have been folded into `fpcore.properties`, `fpcore.xy_data`, `fpcore.constants`, and `fpcore.utils`. New code should depend on `fpcore` directly. This repo is frozen in place for reference and to keep older consumers (notably ADEPT) working until they migrate; expect no further releases.
+
 ![PyPI version](https://badge.fury.io/py/physical-properties.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
